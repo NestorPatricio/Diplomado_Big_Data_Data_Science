@@ -1,0 +1,10 @@
+cd /usr/lib/examples
+
+./deploy-examples.sh
+
+yarn jar /usr/hdp/current/hadoop-mapreduce-client/hadoop-mapreduce-examples.jar wordcount /example/data/gutenberg/davinci.txt /example/data/WordCountOutput
+
+
+hdfs dfs -ls /example/data/WordCountOutput
+
+hdfs dfs -cat /example/data/WordCountOutput/part-r-00000
