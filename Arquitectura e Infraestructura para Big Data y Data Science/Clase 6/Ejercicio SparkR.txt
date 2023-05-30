@@ -1,0 +1,40 @@
+# PASO 1
+library(readr)  
+library(dplyr)  
+url <- "https://archive.ics.uci.edu/ml/machine-learning-databases/wine-quality/winequality-white.csv"  
+df <-  
+  read_delim(url, delim = ";") %>%  
+  dplyr::mutate(taste = as.factor(ifelse(quality < 6, "bad", ifelse(quality > 6, "good", "average")))) %>%  
+  dplyr::select(-quality)  
+df <- dplyr::mutate(df, id = as.integer(rownames(df)))
+
+# PASO 2
+library(SparkR)
+ddf <- createDataFrame(df)
+
+# PASO 3
+seed <- 12345  
+training_ddf <- sample(ddf, withReplacement=FALSE, fraction=0.7, seed=seed)  
+test_ddf <- except(ddf, training_ddf)
+
+# PASO 4
+model <- spark.randomForest(training_ddf, taste ~ ., type="classification", seed=seed)
+
+# PASO 5
+summary(model)
+
+# PASO 6
+predictions <- predict(model, test_ddf)  
+prediction_df <- collect(select(predictions, "id", "prediction"))
+
+# PASO 7
+
+actual_vs_predicted <-  
+ dplyr::inner_join(df, prediction_df, "id") %>%  
+ dplyr::select(id, actual = taste, predicted = prediction)
+
+mean(actual_vs_predicted$actual == actual_vs_predicted$predicted)
+
+# PASO 8
+
+table(actual_vs_predicted$actual, actual_vs_predicted$predicted)

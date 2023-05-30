@@ -1,0 +1,107 @@
+# Install tpot on the server
+!pip install tpot
+
+
+# pandas and numpy for data manipulation
+import pandas as pd
+import numpy as np
+
+# Import the tpot regressor
+from tpot import TPOTRegressor
+
+
+
+# Read in features from GitHub
+train_features = pd.read_csv('https://raw.githubusercontent.com/WillKoehrsen/machine-learning-project-walkthrough/master/data/X_train.csv')
+test_features = pd.read_csv('https://raw.githubusercontent.com/WillKoehrsen/machine-learning-project-walkthrough/master/data/X_test.csv')
+
+# Read in labels from GitHub
+train_labels = pd.read_csv('https://raw.githubusercontent.com/WillKoehrsen/machine-learning-project-walkthrough/master/data/Y_train.csv')
+test_labels = pd.read_csv('https://raw.githubusercontent.com/WillKoehrsen/machine-learning-project-walkthrough/master/data/Y_test.csv')
+
+print('Training features shape: ', train_features.shape)
+print('Testing features shape:  ', test_features.shape)
+
+
+
+train_features.head()
+
+
+# Convert to numpy arrays
+training_features = np.array(train_features)
+testing_features = np.array(test_features)
+
+# Sklearn wants the labels as one-dimensional vectors
+training_targets = np.array(train_labels).reshape((-1,))
+testing_targets = np.array(test_labels).reshape((-1,))
+
+
+# Create a tpot object with a few parameters
+tpot = TPOTRegressor(scoring = 'neg_mean_absolute_error', 
+                    max_time_mins = 480, 
+                    n_jobs = -1,
+                    verbosity = 2,
+                    cv = 5)
+
+
+
+# Fit the tpot model on the training data
+tpot.fit(training_features, training_targets)
+
+
+# Show the final model
+print(tpot.fitted_pipeline_)
+
+
+# Export the pipeline as a python script file
+tpot.export('tpot_exported_pipeline.py')
+
+
+# Import file management
+from google.colab import file
+
+# Download the pipeline for local use
+files.download('tpot_exported_pipeline.py')
+
+
+# Evaluate the final model
+print(tpot.score(testing_features, testing_targets))
+
+
+
+
+
+
+# Imports that the final pipeline needs
+from sklearn.ensemble import GradientBoostingRegressor
+from sklearn.linear_model import LassoLarsCV
+from sklearn.model_selection import train_test_split
+from sklearn.pipeline import make_pipeline, make_union
+from sklearn.preprocessing import Imputer
+from tpot.builtins import StackingEstimator
+
+# Preprocessing steps
+imputer = Imputer(strategy="median")
+imputer.fit(training_features)
+training_features = imputer.transform(training_features)
+testing_features = imputer.transform(testing_features)
+
+# Final pipeline from TPOT
+exported_pipeline = make_pipeline(
+    StackingEstimator(estimator=LassoLarsCV(normalize=True)),
+    GradientBoostingRegressor(alpha=0.95, learning_rate=0.1, loss="lad", 
+                              max_depth=7, max_features=0.75, 
+                              min_samples_leaf=3, min_samples_split=18, 
+                              n_estimators=100, subsample=0.60)
+)
+
+
+# Fit on the training data
+exported_pipeline.fit(training_features, training_targets)
+
+
+
+# Make predictions on the testing data
+predictions = exported_pipeline.predict(testing_features)
+
+print('Mean Absolute Error = %0.4f' % np.mean(abs(predictions - testing_targets)))
