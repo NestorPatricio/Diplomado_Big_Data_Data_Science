@@ -15,13 +15,12 @@ location <- read.csv(paste0(
 
 # Importación de librerías:
 library(dplyr)
-library(forecats)
 library(ggplot2)
 
 # PREGUNTAS 1.1
 # P1a) Basándose en la tabla general, ¿cuántos restaurants (id's) distintos hay
 #en total?
-respuesta11a <- nrow(general)
+respuesta11a <- n_distinct(general$id_restaurant)
 print(paste(
   '1.1a) Basándose en la tabla general hay',
   respuesta11a,
@@ -29,7 +28,7 @@ print(paste(
 ))
 
 # P1b) ¿En cuántos tipos de comida diferentes se clasifican los restaurants?
-respuesta11b <- length(unique(general$food_type))
+respuesta11b <- n_distinct(general$food_type)
 print(paste(
   '1.1b) Entre todos los restaurantes de la tabla general se pueden encontrar',
   respuesta11b,
@@ -37,7 +36,7 @@ print(paste(
 ))
 
 # P1c) ¿Cuántas ciudades distintas considera el sondeo?
-respuesta11c <- length(unique(location$city))
+respuesta11c <- n_distinct(location$city)
 print(paste(
   '1.1c) Según la tabla location el sondeo considera',
   respuesta11c,
@@ -187,10 +186,8 @@ print('-----------------------------------------------------------------------')
 #presente en más de una ciudad ¿cuántos restaurants tienen esta característica,
 #es decir están en más de una ciudad distinta? (Ver info complementaria).
 respuesta13 <- info_total %>% 
-  group_by(label, city) %>% 
-  summarise(restaurants_by_name = n()) %>% 
   group_by(label) %>% 
-  summarise(cities_by_restaurant = n()) %>% 
+  summarise(cities_by_restaurant = n_distinct(city)) %>% 
   filter(cities_by_restaurant > 1)
 
 respuesta13a <- nrow(respuesta13)
@@ -220,13 +217,12 @@ respuesta13c <- info_total %>%
   group_by(label) %>% 
   summarise(locals_by_restaurants = n()) %>% 
   arrange(desc(locals_by_restaurants)) %>% 
-  head(n = 15) %>% 
-  mutate(label = fct_reorder(label, locals_by_restaurants)) %>% 
+  head(n = 15) %>%
   ggplot() +
   aes(
-    y = label,
+    y = reorder(label, locals_by_restaurants),
     x = locals_by_restaurants,
-    fill = label,
+    fill = reorder(label, locals_by_restaurants),
     label = locals_by_restaurants
   ) +
   geom_col() +
@@ -259,27 +255,27 @@ print('-----------------------------------------------------------------------')
 #por cada tipo de comida).
 # review_prom_city: Valoración promedio de los restaurantes por cada ciudad (se
 #puede repetir el valor por cada tipo de comida, ver info complementaria).
-auxiliar_1 <- info_total %>% 
+respuesta14a_1 <- info_total %>% 
   group_by(city, food_type) %>% 
   summarise(
     n_rest = n(),
     review_prom = mean(review, na.rm = TRUE)
   )
 
-auxiliar_2 <- info_total %>% 
+respuesta14a_2 <- info_total %>% 
   group_by(city) %>% 
   summarise(
     n_total = n(),
     review_prom_city = mean(review, na.rm = TRUE)
   )
 
-respuesta14a <- auxiliar_1 %>% 
+resumen <- respuesta14a_1 %>% 
   inner_join(
-    auxiliar_2,
+    respuesta14a_2,
     join_by(city == city)
   ) %>% 
   arrange(desc(n_rest))
-View(respuesta14a)
+View(resumen)
 
 # P4b) Basado en la tabla anterior, construya dos nuevas columnas:
 # density_food_type: Representa el cuociente entre le total de restaurants por
@@ -288,7 +284,7 @@ View(respuesta14a)
 # ratio_review: Representa el cociente entre a valoración del restaurant por
 #tipo de comida y ciudad, respecto de la valoración promedio de los resturants
 #de la misma ciudad (review_prom/review_prom_city).
-respuesta14b <- respuesta14a %>% 
+respuesta14b <- resumen %>% 
   mutate(
     density_food_type = n_rest / n_total,
     rate_review = review_prom / review_prom_city
@@ -347,5 +343,5 @@ respuesta15b <- respuesta15a %>%
 respuesta15b
 
 print(paste(
-  ''
+  '1.5b) '
 ))
