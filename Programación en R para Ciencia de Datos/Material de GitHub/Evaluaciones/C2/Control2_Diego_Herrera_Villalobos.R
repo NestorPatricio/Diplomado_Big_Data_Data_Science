@@ -82,15 +82,14 @@ join_variables %>% filter(city != "san francisco" & food_type == "japanese") %>%
 # para ello calcula el promedio de las valoraciones medias (promedio de review) 
 # por cada ciudad, y escoje aquella con mayor review promedio. ¿Qué ciudad escoge?
 
-promedio_reviews <- join_variables %>% group_by(city) %>%
-  summarise(promedio = mean(review))
+join_variables %>%
+  filter(city != "san francisco" & food_type == "japanese") %>%
+  group_by(city) %>%
+  summarise(cantidad_restaurantes = n(), promedio_reviews = mean(review)) %>%
+  top_n(3, wt = cantidad_restaurantes)
 
-join_variables %>% group_by(city) %>%
-  summarise(promedio = mean(review)) %>%
-  slice_max(order_by = promedio)
-
-# Respuesta: Escogería la ciudad de Cerritos con 3.8 reviews promedio
-# dado a que es el valor promedio más alto
+# Respuesta: De las 3 ciudades en cuestion, escogería la ciudad de San José 
+# por tener el promedio de reviews más alto de 2.52
 
 # Pregunta 2e. Cuál es la ciudad con mejor valoración promedio 
 # de restaurantes tipo "barbeque"
@@ -120,16 +119,18 @@ join_variables %>%
 # la mayor cantidad de ciudades distintas?
 # ¿En cuántas ciudades está presente?
 
-presencia <- table(join_variables$label)
-mayor_presencia <- names(presencia)[which.max(presencia)]
-print(mayor_presencia)
+restaurantes_ciudades <- join_variables %>%
+  group_by(label) %>%
+  summarise(ciudades_distintas = n_distinct(city)) %>%
+  arrange(desc(ciudades_distintas))
 
-join_variables %>%
-  filter(label == "round table pizza") %>%
-  summarise(num_ciudades = n_distinct(city))
+restaurante_cant_ciudades <- restaurantes_ciudades %>%
+  filter(ciudades_distintas == max(ciudades_distintas))
 
-# Respuesta: el restaurante de mayor presencia es Round Table Pizza
-# y está presente en 44 ciudades.
+print(restaurante_cant_ciudades)
+
+# Respuesta: el restaurante de mayor presencia es Baskin Robbins
+# y está presente en 49 ciudades.
 
 # Pregunta 3c. Muestre, mediante un gráfico de barras, 
 # los 15 restaurantes con mayor cantidad de sucursales, donde la altura de la barra
@@ -161,37 +162,35 @@ top_15 %>%
   guides(fill = FALSE, color = FALSE)
 
 # Pregunta 4.a Genere una tabla llamada resumen, que contenga 
-# la siguiente información:
+# la siguiente información: city, food_type, n_rest, review_prom, total_rest, review_prom_city.
 
-# paso 1, crear una copia del join realizado en las preguntas previas
-join_variables2 <- join_variables
-
-# paso 2 crear las columnas solicitadas:
+# paso 1 crear las columnas solicitadas:
 
 # n_rest.
-join_variables2 <- join_variables2 %>%
+join_variables <- join_variables %>%
   group_by(city, food_type) %>%
   mutate(n_rest = n())
 
 # review_prom
-join_variables2 <- join_variables2 %>%
+join_variables <- join_variables %>%
   group_by(city, food_type) %>%
   mutate(review_prom = mean(review))
 
 # total_rest
-join_variables2 <- join_variables2 %>%
+join_variables <- join_variables %>%
   group_by(city) %>%
   mutate(total_rest = n())
 
 # review_prom_city
 
-join_variables2 <- join_variables2 %>%
+join_variables <- join_variables %>%
   group_by(city) %>%
   mutate(review_prom_city = mean(review))
 
-# paso 3 crear la tabla resumen
 
-resumen <- select(join_variables2, city, food_type, n_rest, review_prom, total_rest, review_prom_city)
+# paso 2 crear la tabla resumen
+
+resumen <- select(join_variables, city, food_type, n_rest, review_prom, total_rest, review_prom_city)
 
 # Pregunta 4b. Construya 2 nuevas columnas a la tabla resumen
 
@@ -206,7 +205,8 @@ ggplot(resumen, aes(x = density_food_type, y = ratio_review)) +
   geom_smooth(method = "lm", se = FALSE) +
   labs(x = "Density Food Type", y = "Ratio Review") +
   ggtitle("Relación entre Density Food Type y Ratio Review")
-  
+
+
 # Respuesta: Se observa una curva con una pendiente negativa. 
 # ya que a medida que los valores en el eje X aumentan (density food type)
 # los valores en el eje Y (ratio review) tienden a disminuir, por lo tanto,
@@ -219,6 +219,7 @@ ggplot(resumen, aes(x = density_food_type, y = ratio_review)) +
 
 resumen <- resumen %>%
   mutate(type_review = ifelse(ratio_review >= 1, "review alto", "review bajo"))
+
 
 # Respuesta:
 
@@ -245,6 +246,7 @@ ggplot(resumen, aes(x = type_review, y = density_food_type)) +
   geom_boxplot() +
   labs(x = "Type Review", y = "Density Food Type") +
   ggtitle("Distribución de Densidad Tipo de Comida por Tipo de Review")
+
 
 # Respuesta: se observa que las cajas están achatadas, por lo que hay menos 
 # dispersión entre los datos y hay mas concentración o densidad entre ellos.
