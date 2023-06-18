@@ -95,9 +95,9 @@ respuesta14a <- respuesta14 %>%
 
 print(paste0(
   '1.4.a) La esperanza de vida promedio para el año ',
-  respuesta13[1, 'year'],
+  respuesta13[1, 'year'], # 1992
   ' fue de ',
-  round(respuesta14a, 1),
+  round(respuesta14a, 1), # 79.36
   ' años.'
 ))
 
@@ -108,11 +108,11 @@ respuesta14b <- respuesta14 %>%
 
 print(paste0(
   '1.4.b) El país con mayor esperanza de vida para el año ',
-  respuesta13[1, 'year'],
+  respuesta13[1, 'year'], # 1992
   ' fue ',
-  respuesta14b[1, 'country'],
+  respuesta14b[1, 'country'], # Japan
   ' con ',
-  respuesta14b[1, 'lifeExp'],
+  respuesta14b[1, 'lifeExp'], # 79.36
   ' años.'
 ))
 
@@ -138,14 +138,14 @@ respuesta15a <- data.frame(continentes, p_values)
 print(paste0(
   'P1.5.a) Al analizar la distribución de los logaritmos de los valores de la ',
   'expectativa de vida por continente, sólo ',
-  respuesta15a[1, 'continentes'],
+  respuesta15a[1, 'continentes'], # Africa
   ' y ',
-  respuesta15a[2, 'continentes'],
+  respuesta15a[2, 'continentes'], # Oceania
   ' tienen una distribución normal, pues en el test de Shapiro presentan ',
   'un p-value de ',
-  round(respuesta15a[1, 'p_values'], 3),
+  round(respuesta15a[1, 'p_values'], 3), # 0.117
   ' y ',
-  round(respuesta15a[2, 'p_values'], 3),
+  round(respuesta15a[2, 'p_values'], 3), # 0.091
   ', respectivamente, con lo cual podemos descartar que no tengan una ',
   'distribución normal con un 5% de significancia.'
 ))
@@ -202,18 +202,46 @@ print(respuesta15b3)
 # P5.c) Complemente lo anterior, visualizando los qqplots para el logaritmo de
 #lifeExp. Considere la utilización de las funciones qqnorm() y qqline() para el
 #contraste contra una distribución normal.
-respuesta15c <- 
+respuesta15c <- gapminder %>% 
+  mutate(log_lifeExp = log(lifeExp)) %>% 
+  select(log_lifeExp) %>%
+  unlist()
 
+qqnorm(respuesta15c)
+qqline(respuesta15c)
 
 # P6) onsiderando el continente de África, y asumiendo normalidad en el
 #logaritmo de lifeExp. Independiente del año ¿cuál es la probabilidad de que la
 #expectativa de vida (lifeExp) sea superior a 54 años?
+expectativa_africa <- gapminder %>% 
+  filter(continent == 'Africa') %>% 
+  mutate(log_lifeExp = log(lifeExp)) %>% 
+  select(log_lifeExp) %>% 
+  unlist()
+respuesta16 <- pnorm(
+  log(54),
+  mean = mean(expectativa_africa),
+  sd = sd(expectativa_africa),
+  lower.tail = FALSE
+)
+
+print(paste0(
+  'P1.6) Asumiendo una distribución normal para los valores del logaritmo de ',
+  'la expectativa de vida, independiente del año, la probabilidad de tener una',
+  ' vida superior a 54 años en el continente africano es de ',
+  round((respuesta16 * 100), 2),
+  '%.'
+))
 
 print('-----------------------------------------------------------------------')
 
 # SECCIÓN 2
 # P1) Genere tres nuevas columnas, que contengan la hora, minutos y segundos de
 #la transacción registrada.
+respuesta21 <- cafeteria %>%
+  separate(Time, c('hora', 'min', 'seg'), sep = ':')
+
+View(respuesta21)
 
 # P2) Genere una tabla resumen que contenga la siguiente información:
 # hora: hora donde se registraron las transacciones. Por ejemplo, el valor 09
@@ -223,14 +251,62 @@ print('-----------------------------------------------------------------------')
 # total_items: total de items vendidos en el bloque horario respectivo.
 # total_items_unicos: total de items únicos venidos en el bloque horario
 #respectivo.
+respuesta22 <- respuesta21 %>% 
+  filter(Item == 'NONE') %>% 
+  group_by(hora) %>% 
+  summarise(
+    total_trx = n_distinct(Transaction),
+    total_items = n(),
+    total_items_unicos = n_distinct(Item)
+  )
+
+View(respuesta22)
+print(paste(
+  'Se decide trabajar los datos excluyendo los registros cuyo valor en Item',
+  'es NONE.'
+))
 
 # P3) Con base en la tabla anterior, diremos que una hora pertenece al horario
 #punta si la cantidad de transacciones distintas generadas en dicho bloque
 #supera las 1000 transacciones.
 # P3.a) ¿Qué horas comprende el horario punta?
+respuesta23a <- respuesta22 %>% 
+  filter(total_trx > 1000)
 
+print(paste0(
+  'P2.3a) Excluyendo la etiqueta NONE en los ítems, las horas que comprenden ',
+  'el horario punta son las ',
+  respuesta23a[1, 'hora'], # 09
+  ', las ',
+  respuesta23a[2, 'hora'], # 10
+  ', las ',
+  respuesta23a[3, 'hora'], # 11
+  ', las ',
+  respuesta23a[4, 'hora'], # 12
+  ', las ',
+  respuesta23a[5, 'hora'], # 13
+  ' y las ',
+  respuesta23a[6, 'hora'], # 14
+  ' horas.'
+))
 # P3.b) En promedio ¿cuántas transacciones distintas por hora se dieron en
 #horario punta? ¿Y en horario no punta?
+respuesta23b1 <- respuesta23a %>%
+  summarise(mean(total_trx))
+
+respuesta23b2 <- respuesta22 %>% 
+  filter(total_trx <= 1000) %>% 
+  summarise(mean(total_trx))
+
+print(paste0(
+  'P2.3b) Excluyendo la etiqueta NONE en los ítems, en horario punta se ',
+  'realizan, en promedio, unas ',
+  round(respuesta23b1[1, 1]), # 1226
+  ' transacciones por hora, mientras que el resto del tiempo, en promedio, se ',
+  'realizan sólo ',
+  round(respuesta23b2[1, 1]), # 181
+  ' transacciones por hora.'
+))
 
 # P4) Se sabe que el total de personal disponible es capaz de atender como
 #máximo, 1300 transacciones por hora, de modo que no se "sature" el sistema y
@@ -239,16 +315,63 @@ print('-----------------------------------------------------------------------')
 #igual al estimado en la pregunta 3.b (hora punta):
 # P4.a) ¿Cuál es la probabilidad de que en horario punta se den más de 1300
 #transacciones en una hora? ¿Cómo interpretaría este valor? Comente.
+respuesta24a <- ppois(
+  1300,
+  lambda = round(respuesta23b1[[1, 1]]),
+  lower.tail = FALSE
+)
+
+print(paste0(
+  'P2.4a) Excluyendo la etiqueta NONE en los ítems y asumiendo una ',
+  'distribución de Poisson para la cantidad de transacciones por hora, con un ',
+  'valor de lambda igual al promedio de transacciones por hora en el bloque ',
+  'punta, la probabilidad de que en una hora se realicen más de 1.300 ',
+  'transacciones es de ',
+  round((respuesta24a * 100), 2), # 1.74
+  '%. Esto significa que menos del 2% del tiempo la espera para poder realizar',
+  ' una transacción superará lo razonable.'
+))
 
 # P4.b) Con el objetivo de reducir costos, se propone limitar el personal
 #disponible a modo de poder atender como máximo 1.250 transacciones por hora
 #¿que tan probable es que se supere este máximo de transacciones por hora?
 #¿Recomendaría usted esta medida?
+respuesta24b <- ppois(
+  1250,
+  lambda = round(respuesta23b1[[1, 1]]),
+  lower.tail = FALSE
+)
+
+print(paste0(
+  'P2.4b) Excluyendo la etiqueta NONE en los ítems y asumiendo una ',
+  'distribución de Poisson para la cantidad de transacciones por hora, con un ',
+  'valor de lambda igual al promedio de transacciones por hora en el bloque ',
+  'punta, la probabilidad de que en una hora se realicen más de 1.250 ',
+  'transacciones es de ',
+  round((respuesta24b * 100), 2), # 24.13
+  '%. Personalmente, no recomendaría este recorte del personal, pues implica ',
+  'que en una de cada cuatro transacciones el tiempo la espera será excesivo, ',
+  'espantando clientes.'
+))
 
 # P4.c) Usted sugiere modificar la cantidad de personal pero teniendo en cuenta
 #de que se garantice la atención de al menos un 95% de las transacciones por
 #hora ¿cuántas transacciones por hora se deberían poder gestionar en este
 #escenario?
+respuesta24c <- qpois(
+  0.95,
+  lambda = round(respuesta23b1[[1, 1]])
+)
+
+print(paste0(
+  'P2.4c) Excluyendo la etiqueta NONE en los ítems y asumiendo una ',
+  'distribución de Poisson para la cantidad de transacciones por hora, con un ',
+  'valor de lambda igual al promedio de transacciones por hora en el bloque ',
+  'punta, si al menos un 95% de las transacciones se realizan en un tiempo ',
+  'razonable, se debería contar con personal suficiente para realizar ',
+  respuesta24c, # 1284
+  ' transacciones por hora.'
+))
 
 # P5) ¿Cuáles son los 5 items más vendidos? Ilustre mediante un gráfico de
 #barras o una tabla.
@@ -273,7 +396,6 @@ print('-----------------------------------------------------------------------')
 
 # P8) Se quiere potenciar un segundo producto por la compra de un café en los
 #tres horarios definidos previamente en P6:
-
 # P8.a) Genere tres listados (uno por cada rango horario) con todas las reglas
 #que contengan el producto Coffee en el antecedente.
 
