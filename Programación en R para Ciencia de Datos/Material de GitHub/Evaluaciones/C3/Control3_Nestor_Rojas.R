@@ -3,7 +3,7 @@
 #Nombre1: Néstor Patricio Rojas Ríos
 
 # Instalación e importación de librerías:
-librerias <- c('arules', 'gapminder', 'tidyverse')
+librerias <- c('tidyverse', 'arules', 'gapminder')
 for (libreria in librerias) {
   if(!is.element(libreria, .packages())) {
     install.packages(libreria)
@@ -11,14 +11,18 @@ for (libreria in librerias) {
   library(libreria, character.only = TRUE)
 }
 
-print(cat('Hola, hola
-¿Cómo estás?'))
-
 # Configuración de la carpeta de trabajo, sólo para trabajo en mi local:
-carpeta_de_trabajo <- paste0('/home/nestorprr/Documentos/Diplomado_Big_Data_',
-  'Data_Science/Programación en R para Ciencia de Datos/Material de GitHub/',
-  'Evaluaciones/C3')
-setwd(carpeta_de_trabajo)
+carpeta_de_trabajo_linux <- paste0(
+  '~/Documentos/Diplomado_Big_Data_Data_Science/Programación en R para Ciencia',
+  ' de Datos/Material de GitHub/Evaluaciones/C3'
+)
+carpeta_de_trabajo_windows <- paste0(
+  'C:/Users/nproj/Documents/Diplomado_Big_Data_Data_Science/Programación en R',
+  ' para Ciencia de Datos/Material de GitHub/Evaluaciones/C3'
+)
+
+setwd(carpeta_de_trabajo_linux)
+setwd(carpeta_de_trabajo_windows)
 
 # Carga de datasets:
 data(gapminder)
@@ -31,6 +35,7 @@ respuesta11 <- gapminder %>%
   filter(gdpPercap > 50000) %>% 
   select(country, year) %>% 
   mutate(country = as.character(country))
+
 print(paste0(
   '1.1) Los registros que presentan alto GDP corresponden a ',
   respuesta11[1, 'country'], # Kuwait
@@ -57,8 +62,9 @@ respuesta12 <- gapminder %>%
   filter(year %in% c(1952, 2007)) %>% 
   ggplot() +
   aes(x = gdpPercap, y = lifeExp, size = pop, colour = continent) +
-  facet_wrap(~ year) +
+  facet_wrap(vars(year)) +
   geom_point()
+
 respuesta12
 
 # P3) Determine el nivel de correlación de Spearman, entre las variables
@@ -68,6 +74,7 @@ respuesta13 <- gapminder %>%
   group_by(year) %>% 
   summarise(sp_cor = cor(gdpPercap, lifeExp, method = 'spearman')) %>%
   arrange(desc(sp_cor))
+
 print(paste0(
   '1.3) El año en que se observa mayor nivel de correlación fue ',
   respuesta13[1, 'year'], # 1992
@@ -85,6 +92,7 @@ respuesta14 <- gapminder %>%
 #registrados?
 respuesta14a <- respuesta14 %>% 
   summarise(mean(lifeExp))
+
 print(paste0(
   '1.4.a) La esperanza de vida promedio para el año ',
   respuesta13[1, 'year'],
@@ -178,22 +186,24 @@ respuesta15b2 <- oceania%>%
   )
 
 respuesta15b3 <- paste(
-  'Si bien el histograma de los valores del logaritmo de las expectativas de',
-  'vida de Oceanía tiende a parecerse a una distribución normal, no tiene la',
-  'forma de campana típica, como si la tiene el de África. Un factor que puede',
-  'estar influyendo en la forma puede ser la presencia de países con distinto',
-  'estándar de vida, con Australia y Nueva Zelanda en lo alto, junto con',
-  'países de economías más modestas, como son los de las islas de la Polinesia.'
+  'P1.5.b) Si bien el histograma de los valores del logaritmo de las',
+  'expectativas de vida de Oceanía tiende a parecerse a una distribución',
+  'normal, no tiene la forma de campana típica, como si la tiene el de África.',
+  'Un factor que puede estar influyendo en la forma puede ser la presencia de',
+  'países con distinto estándar de vida, con Australia y Nueva Zelanda en lo',
+  'alto, junto con países de economías más modestas, como son los de las islas',
+  'de la Polinesia.'
 )
 
 respuesta15b1
 respuesta15b2
 print(respuesta15b3)
 
-
 # P5.c) Complemente lo anterior, visualizando los qqplots para el logaritmo de
 #lifeExp. Considere la utilización de las funciones qqnorm() y qqline() para el
 #contraste contra una distribución normal.
+respuesta15c <- 
+
 
 # P6) onsiderando el continente de África, y asumiendo normalidad en el
 #logaritmo de lifeExp. Independiente del año ¿cuál es la probabilidad de que la
