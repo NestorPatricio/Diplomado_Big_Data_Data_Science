@@ -336,7 +336,7 @@ print(paste(
 # P5b) Para cada type_review, muestre a través de un gráfico de cajas (boxplot),
 #la distribución de la densidad del tipo de comida density_food_type. ¿Qué puede
 #observar?
-respuesta15b <- respuesta15a %>% 
+respuesta15b <- resumen %>% 
   ggplot() +
   aes(x = type_review, y = density_food_type, colour = type_review) + 
   geom_boxplot() +
