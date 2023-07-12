@@ -1,10 +1,8 @@
 # Indicar el directorio de trabajo: Dirección donde se encuentra la carpeta
-setwd(
-  paste0(
-    '/Users/nrojas/Documents/Diplomado_Big_Data_Data_Science/Minería de datos',
-    '/Clases/Clase 2/'
-  )
-)
+setwd(paste0(
+  '/home/nestorprr/Documentos/Diplomado_Big_Data_Data_Science/Minería de datos',
+  '/Clases/Clase 2/'
+))
 
 # Cargar la base de datos: Indicar el nombre del archivo, el tipo de separación
 #de columnas
@@ -82,10 +80,10 @@ datos2 <- datos[which(datos$ValorZ < 5.2), names(datos)]
 summary(datos2)
 
 # Correlación
-cor(datos2$Trafico,datos2$Ventas)
+cor(datos2$Trafico, datos2$Ventas)
 
 # Gráfico de dispersión entre dos variables
-plot(datos2$Trafico,datos2$Ventas)
+plot(datos2$Trafico, datos2$Ventas)
 
 # Histograma de una variable
 hist(datos2$Trafico)
@@ -98,7 +96,7 @@ datosP <- read.csv("DatosPaises.csv", sep = ";", header = TRUE)
 head(datosP)
 summary(datosP)
 
-# An?lisis de correlaciones
+# Análisis de correlaciones
 cor(datosP) # No funciona, porque tenemos una columna con nombres de paises
 cor(datosP[c(2:30)]) # Matriz de 29x29
 cor(datosP$PIB,datosP[c(3:30)]) # Vector con 28 correlaciones
