@@ -3,6 +3,7 @@
 ########## Configuración de área de trabajo e importación de datos ##########
 library(dplyr)
 library(ggplot2)
+library(patchwork)
 
 setwd(paste0(
   '/home/nestorprr/Documentos/Diplomado_Big_Data_Data_Science/Minería de datos',
@@ -415,3 +416,135 @@ histograma_MORTMAT_valor_z
 estadisticos_MORTMAT <- comparacion_estadisticos('MORTMAT', 2, 2, TRUE, TRUE)
 resumen_MORTMAT <- estadisticos_MORTMAT[[1]]
 resumen_MORTMAT
+
+
+############################## Pregunta 2 ##############################
+cor(log(datos_paises$PIB), datos_paises$IDH)
+mean(datos_paises$IDH)
+sd(datos_paises$IDH)
+median(datos_paises$IDH)
+grafico_IDH <- graficos(datos_paises, 'IDH', FALSE)[[2]]
+grafico_IDH
+
+cor(log(datos_paises$PIB), log(datos_paises$DIOXIDO))
+mean(log(datos_paises$DIOXIDO))
+sd(log(datos_paises$DIOXIDO))
+median(log(datos_paises$DIOXIDO))
+grafico_DIOXIDO_log <- graficos(datos_paises, 'DIOXIDO', TRUE)[[2]]
+grafico_DIOXIDO_log
+
+cor(log(datos_paises$PIB), datos_paises$INTERNET)
+mean(datos_paises$INTERNET)
+sd(datos_paises$INTERNET)
+median(datos_paises$INTERNET)
+grafico_INTERNET <- graficos(datos_paises, 'INTERNET', FALSE)[[2]]
+grafico_INTERNET
+
+cor(log(datos_paises$PIB), log(datos_paises$MORTMAT))
+mean(log(datos_paises$MORTMAT))
+sd(log(datos_paises$MORTMAT))
+median(log(datos_paises$MORTMAT))
+grafico_MORTMAT_log <- graficos(datos_paises, 'MORTMAT', TRUE)[[2]]
+grafico_MORTMAT_log
+
+cor(log(datos_paises$PIB), log(datos_paises$MORTINF))
+mean(log(datos_paises$MORTINF))
+sd(log(datos_paises$MORTINF))
+median(log(datos_paises$MORTINF))
+grafico_MORTINF_log <- graficos(datos_paises, 'MORTINF', TRUE)[[2]]
+grafico_MORTINF_log
+
+cor(log(datos_paises$PIB), log(datos_paises$FAO))
+mean(log(datos_paises$FAO))
+sd(log(datos_paises$FAO))
+median(log(datos_paises$FAO))
+grafico_FAO_log <- graficos(datos_paises, 'FAO', TRUE)[[2]]
+grafico_FAO_log
+
+cor(log(datos_paises$PIB), datos_paises$ESCOLARIDAD)
+mean(datos_paises$ESCOLARIDAD)
+sd(datos_paises$ESCOLARIDAD)
+median(datos_paises$ESCOLARIDAD)
+grafico_ESCOLARIDAD <- graficos(datos_paises, 'ESCOLARIDAD', FALSE)[[2]]
+grafico_ESCOLARIDAD
+
+cor(log(datos_paises$PIB), datos_paises$ELECTRICIDAD)
+mean(datos_paises$ELECTRICIDAD)
+sd(datos_paises$ELECTRICIDAD)
+median(datos_paises$ELECTRICIDAD)
+grafico_ELECTRICIDAD <- graficos(datos_paises, 'ELECTRICIDAD', FALSE)[[2]]
+grafico_ELECTRICIDAD
+
+cor(log(datos_paises$PIB), datos_paises$VIDA)
+mean(datos_paises$VIDA)
+sd(datos_paises$VIDA)
+median(datos_paises$VIDA)
+grafico_VIDA <- graficos(datos_paises, 'VIDA', FALSE)[[2]]
+grafico_VIDA
+
+cor(log(datos_paises$PIB), datos_paises$GENERO)
+mean(datos_paises$GENERO)
+sd(datos_paises$GENERO)
+median(datos_paises$GENERO)
+grafico_GENERO <- graficos(datos_paises, 'GENERO', FALSE)[[2]]
+grafico_GENERO
+
+cor(log(datos_paises$PIB), datos_paises$DESERCION)
+mean(datos_paises$DESERCION)
+sd(datos_paises$DESERCION)
+median(datos_paises$DESERCION)
+grafico_DESERCION <- graficos(datos_paises, 'DESERCION', FALSE)[[2]]
+grafico_DESERCION
+
+
+# Estructura de gráficos con  signo positivo
+(grafico_IDH + grafico_DIOXIDO_log + grafico_INTERNET) / (grafico_ESCOLARIDAD + grafico_ELECTRICIDAD + grafico_VIDA)
+
+# Estructura de gráficos con  signo negativo
+(grafico_MORTMAT_log + grafico_MORTINF_log + grafico_FAO_log) / (grafico_GENERO + grafico_DESERCION)
+
+
+############################## Pregunta 3 ##############################
+# Logaritmo del PIB
+PIB_log <- log(datos_paises$PIB)
+
+# Variables en escala normal con signo positivo
+IDH <- datos_paises$IDH
+INTERNET <- datos_paises$INTERNET
+ESCOLARIDAD <- datos_paises$ESCOLARIDAD
+ELECTRICIDAD <- datos_paises$ELECTRICIDAD
+VIDA <- datos_paises$VIDA
+CELULAR <- datos_paises$CELULAR
+INMIGRANTES <- datos_paises$INMIGRANTES
+FOSIL <- datos_paises$FOSIL
+TURISMO <- datos_paises$TURISMO#
+PARLAMENTO <- datos_paises$PARLAMENTO
+BOSQUE <- datos_paises$BOSQUE
+
+# Variables en escala normal con signo negativo
+GENERO <- datos_paises$GENERO
+DESERCION <- datos_paises$DESERCION
+RENOVABLE <- datos_paises$RENOVABLE
+VIOLENCIA <- datos_paises$VIOLENCIA#
+SUICIDIOFEM <- datos_paises$SUICIDIOFEM
+HOMICIDIO <- datos_paises$HOMICIDIO
+AFECTADOS <- datos_paises$AFECTADOS
+DESASTRE <- datos_paises$DESASTRE
+
+# Variables en escala logarítmica con signo positivo
+DIOXIDO_log <- log(datos_paises$DIOXIDO)
+PRISION_log <- log(datos_paises$PRISION)
+
+# Variables en escala logarítmica con signo negativo
+MORTMAT_log <- log(datos_paises$MORTMAT)
+MORTINF_log <- log(datos_paises$MORTINF)
+FAO_log <- log(datos_paises$FAO)
+GINI_log <- log(datos_paises$GINI)
+IPC_log <- log(datos_paises$IPC)
+SUICIDIOMAS_log <- log(datos_paises$SUICIDIOMAS)
+POB_log <- log(datos_paises$POB)
+
+
+modelo_final <- lm()
+
+
