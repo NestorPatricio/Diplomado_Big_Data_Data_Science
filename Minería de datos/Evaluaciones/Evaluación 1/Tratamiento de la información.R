@@ -1,7 +1,9 @@
 # Evaluación 1.
 
-# Configurando área de trabajo e importando datos.
-library(tidyverse)
+########## Configuración de área de trabajo e importación de datos ##########
+library(dplyr)
+library(ggplot2)
+
 setwd(paste0(
   '/home/nestorprr/Documentos/Diplomado_Big_Data_Data_Science/Minería de datos',
   '/Evaluaciones/Evaluación 1'
@@ -10,595 +12,406 @@ datos_paises <- read.csv('DatosPaises.csv', sep = ';')
 summary(datos_paises)
 head(datos_paises, n = 10)
 
-# Búsqueda de valores NA.
-hay_na <- c()
-for(dato in names(datos_paises)) {
-  datos_na = sum(is.na(datos_paises[, dato]))
-  if(datos_na > 0) {
-    hay_na <- c(hay_na, dato)
+
+############################## FUNCIONES ##############################
+
+######## Gráficos de variables contra PIB normal y en forma logarítmica ########
+graficos <- function(datos, variable, log_variable = FALSE) {
+  if(log_variable) {
+    valor_x = log(datos[, variable])
+    texto_x = paste('Logaritmo de', variable)
+  } else {
+    valor_x = datos[, variable]
+    texto_x = variable
   }
+  
+  grafico_nolog = datos %>% 
+    ggplot(
+      aes(x = valor_x, y = PIB)
+    ) +
+    geom_point() +
+    geom_smooth(method = 'lm') +
+    labs(
+      x = texto_x, y = 'PIB'
+    )
+  
+  grafico_log = datos %>% 
+    ggplot(
+      aes(x = valor_x, y = log(PIB))
+    ) +
+    geom_point() +
+    geom_smooth(method = 'lm') +
+    labs(
+      x = texto_x, y = 'Logaritmo de PIB'
+    )
+  return(list(grafico_nolog, grafico_log))
 }
-hay_na
 
-# Un primer vistazo a los datos:
-# Población en millones de personas.
-plot(datos_paises$POB, datos_paises$PIB)
-cor(datos_paises$POB, datos_paises$PIB)
 
-# Índice de desarrollo humano.
-plot(datos_paises$IDH, datos_paises$PIB)
-cor(datos_paises$IDH, datos_paises$PIB)
+######################### Histograma univariable #########################
+histograma <- function(
+  variable,
+  datos_originales,
+  candidatos,
+  log_variable = FALSE,
+  titulo = ''
+) {
+  if(log_variable) {
+    datos_originales[variable] = log(datos_originales[variable])
+    nombre_x = paste('Logaritmo de', variable)
+  } else {
+    nombre_x = variable
+  }
+  return(
+    datos_originales %>%
+      ggplot(aes(x = datos_originales[, variable])) +
+      geom_histogram(
+        aes(fill = PAIS %in% candidatos$PAIS)
+      ) +
+      labs(
+        title = titulo,
+        x = nombre_x,
+        y = 'Registros'
+      ) +
+      theme_minimal() +
+      theme(legend.position = 'none')
+  )
+}
 
-# Coeficiente de GINI.
-plot(datos_paises$GINI, datos_paises$PIB)
-cor(datos_paises$GINI, datos_paises$PIB)
 
-# Índice de precio al consumidor.
-plot(datos_paises$IPC, datos_paises$PIB)
-cor(datos_paises$IPC, datos_paises$PIB)
+#################### Identificación de candidatos ouliers ####################
+# Por percentiles 1% y 99%
+por_percentil <- function(
+  variable,
+  log_variable = FALSE,
+  candidatos = TRUE
+) {
+  if(log_variable) {
+    nombre_variable = paste0(variable, '_log')
+    dataframe = datos_paises
+    dataframe[nombre_variable] = log(datos_paises[, variable])
+    dataframe = dataframe %>% arrange(dataframe[, nombre_variable])
+  } else {
+    nombre_variable = variable
+    dataframe = datos_paises %>% arrange(datos_paises[, nombre_variable])
+  }
+  
+  cuantiles = quantile(dataframe[, nombre_variable], c(0.01, 0.99))
+  lim_inf = cuantiles[1]
+  lim_sup = cuantiles[2]
 
-# Índice de precios alimenticios de la FAO.
-plot(datos_paises$FAO, datos_paises$PIB)
-cor(datos_paises$FAO, datos_paises$PIB)
+  if(candidatos) {
+    dataframe = dataframe %>% 
+      filter(
+        dataframe[, nombre_variable] < lim_inf
+        | dataframe[, nombre_variable] > lim_sup
+      )
+  } else {
+    dataframe = dataframe %>% 
+      filter(
+        dataframe[, nombre_variable] > lim_inf
+        & dataframe[, nombre_variable] < lim_sup
+      )
+  }
+  return(dataframe)
+}
 
-# Índice de desigualdad de género.
-plot(datos_paises$GENERO, datos_paises$PIB)
-cor(datos_paises$GENERO, datos_paises$PIB)
+# Por intervalo
+por_intervalo <- function(
+  variable,
+  delta,
+  log_variable = FALSE,
+  candidatos = TRUE
+) {
+  if(log_variable) {
+    nombre_variable = paste0(variable, '_log')
+    dataframe = datos_paises
+    dataframe[nombre_variable] = log(datos_paises[, variable])
+    dataframe = dataframe %>% arrange(dataframe[, nombre_variable])
+  } else {
+    nombre_variable = variable
+    dataframe = datos_paises %>% arrange(datos_paises[, nombre_variable])
+  }
+  
+  promedio <- mean(dataframe[, nombre_variable])
+  desviacion <- sd(dataframe[, nombre_variable])
+  
+  if(candidatos) {
+    dataframe = dataframe %>% 
+      filter(
+        dataframe[, nombre_variable] < (promedio - (delta * desviacion))
+        | dataframe[, nombre_variable] > (promedio + (delta * desviacion))
+      )
+  } else {
+    dataframe = dataframe %>% 
+      filter(
+        dataframe[, nombre_variable] > (promedio - (delta * desviacion))
+        & dataframe[, nombre_variable] < (promedio + (delta * desviacion))
+      )
+  }
+  return(dataframe)
+}
 
-# Tasa de electrificación.
-plot(datos_paises$ELECTRICIDAD, datos_paises$PIB)
-cor(datos_paises$ELECTRICIDAD, datos_paises$PIB)
+# Por valor-Z robusto
+por_z_robusto <- function(
+  variable,
+  delta,
+  log_variable = FALSE,
+  candidatos = TRUE
+) {
+  if(log_variable) {
+    nombre_variable = paste0(variable, '_log')
+    dataframe = datos_paises
+    dataframe[nombre_variable] = log(datos_paises[, variable])
+    dataframe = dataframe %>% arrange(dataframe[, nombre_variable])
+  } else {
+    nombre_variable = variable
+    dataframe = datos_paises %>% arrange(datos_paises[, nombre_variable])
+  }
+  
+  if(candidatos) {
+    dataframe['Error'] = abs(dataframe[, nombre_variable] - median(dataframe[, nombre_variable]))
+    dataframe['Valor_Z'] = dataframe$Error / median(dataframe$Error)
+    dataframe = dataframe %>% 
+      filter(Valor_Z > delta)
+  } else {
+    dataframe['Error'] = abs(dataframe[, nombre_variable] - median(dataframe[, nombre_variable]))
+    dataframe['Valor_Z'] = dataframe$Error / median(dataframe$Error)
+    dataframe = dataframe %>% 
+      filter(Valor_Z < delta)
+  }
+  return(dataframe)
+}  
 
-# Años de escolaridad promedio.
-plot(datos_paises$ESCOLARIDAD, datos_paises$PIB)
-cor(datos_paises$ESCOLARIDAD, datos_paises$PIB)
 
-# Tasa de suicidios femeninos cada 100.000 personas.
-plot(datos_paises$SUICIDIOFEM, datos_paises$PIB)
-cor(datos_paises$SUICIDIOFEM, datos_paises$PIB)
+######################### Comparación de estadísticos ######################### 
+comparacion_estadisticos <- function(
+  variable,
+  delta_intervalo,
+  delta_z,
+  log_variable = FALSE,
+  log_PIB = FALSE
+) {
+  if(log_variable) {
+    nombre_variable = paste0(variable, '_log')
+    dataframe = datos_paises
+    dataframe[nombre_variable] = log(datos_paises[, variable])
+    dataframe = dataframe %>% arrange(dataframe[, nombre_variable])
+    original = paste('Logaritmo de', variable, 'original')
+  } else {
+    nombre_variable = variable
+    dataframe = datos_paises %>% arrange(datos_paises[, nombre_variable])
+    original = paste(variable, 'original')
+  }
+  
+  percentiles <- por_percentil(
+    variable,
+    log_variable,
+    FALSE
+  )
+  intervalo <- por_intervalo(
+    variable,
+    delta_intervalo,
+    log_variable,
+    FALSE
+  )
+  valor_z <- por_z_robusto(
+    variable,
+    delta_z,
+    log_variable,
+    FALSE
+  )
+  
+  if(log_PIB){
+    correlacion = cor(dataframe[, nombre_variable], log(dataframe[, 'PIB']))
+    cor_percentil = cor(percentiles[, nombre_variable], log(percentiles[, 'PIB']))
+    cor_intervalo = cor(intervalo[, nombre_variable], log(intervalo[, 'PIB']))
+    cor_z = cor(valor_z[, nombre_variable], log(valor_z[, 'PIB']))
+  } else {
+    correlacion = cor(dataframe[, nombre_variable], dataframe[, 'PIB'])
+    cor_percentil = cor(percentiles[, nombre_variable], percentiles[, 'PIB'])
+    cor_intervalo = cor(intervalo[, nombre_variable], intervalo[, 'PIB'])
+    cor_z = cor(valor_z[, nombre_variable], valor_z[, 'PIB'])
+  }
+  resumen_df <- data.frame(
+    'Grupo' = c(
+      original, 
+      'Percentiles 1% al 99%', 
+      paste('Intervalo de variabilidad delta', delta_intervalo), 
+      paste('Valor-Z robusto con delta', delta_z)
+    ),
+    'Promedio' = c(
+      mean(dataframe[, nombre_variable], na.rm = TRUE),
+      mean(percentiles[, nombre_variable], na.rm = TRUE),
+      mean(intervalo[, nombre_variable], na.rm = TRUE),
+      mean(valor_z[, nombre_variable], na.rm = TRUE)
+    ),
+    'Desviación_estándar' = c(
+      sd(dataframe[, nombre_variable], na.rm = TRUE),
+      sd(percentiles[, nombre_variable], na.rm = TRUE),
+      sd(intervalo[, nombre_variable], na.rm = TRUE),
+      sd(valor_z[, nombre_variable], na.rm = TRUE)
+    ),
+    'Correlación_con_PIB' = c(
+      correlacion,
+      cor_percentil,
+      cor_intervalo,
+      cor_z
+    )
+  )
+  
+  if(log_PIB){
+    numero_grafico = 2
+  } else {
+    numero_grafico = 1
+  }
+  dataframe_graf <- graficos(dataframe, nombre_variable, FALSE)[numero_grafico]
+  percentiles_graf <- graficos(percentiles, nombre_variable, FALSE)[numero_grafico]
+  intervalo_graf <- graficos(intervalo, nombre_variable, FALSE)[numero_grafico]
+  valor_z_graf <- graficos(valor_z, nombre_variable, FALSE)[numero_grafico]
+  
+  return(list(
+    resumen_df,
+    dataframe_graf,
+    percentiles_graf,
+    intervalo_graf,
+    valor_z_graf
+  ))
+}
 
-# Tasa de suicidios masculinos cada 100.000 personas.
-plot(datos_paises$SUICIDIOMAS, datos_paises$PIB)
-cor(datos_paises$SUICIDIOMAS, datos_paises$PIB)
 
-# Porcentaje de superficie que corresponde a bosques.
-plot(datos_paises$BOSQUE, datos_paises$PIB)
-cor(datos_paises$BOSQUE, datos_paises$PIB)
+############################## EVALUACIONES ##############################
 
-# Porcentaje de uso de combustibles fósiles.
-plot(datos_paises$FOSIL, datos_paises$PIB)
-cor(datos_paises$FOSIL, datos_paises$PIB)
+######################### Búsqueda de valores NA #########################
+hay_na <- function(dataframe) {
+  lista_auxiliar = c()
+  for(dato in names(datos_paises)) {
+    datos_na = sum(is.na(datos_paises[, dato]))
+    if(datos_na > 0) {
+      lista_auxiliar <- c(lista_auxiliar, dato)
+    }
+  }
+  return(lista_auxiliar)
+}
+hay_na(datos_paises)
 
-# Emisiones de dióxido de carbono en toneladas per cápita.
-plot(datos_paises$DIOXIDO, datos_paises$PIB)
-cor(datos_paises$DIOXIDO, datos_paises$PIB)
 
-# Población afectada por desastres naturales en miles.
-plot(datos_paises$DESASTRE, datos_paises$PIB)
-cor(datos_paises$DESASTRE, datos_paises$PIB)
+############### Comparador de correlaciones con y sin logaritmo ###############
+comparador_correlaciones <- function(dataframe) {
+  variables = c()
+  correlaciones = c()
+  abs_correlaciones = c()
+  correlaciones_PIB_log = c()
+  abs_correlaciones_PIB_log = c()
+  
+  for(variable in names(dataframe)) {
+    if(!(variable %in% c('PAIS', 'PIB'))) {
+      correlacion = cor(dataframe[, variable], dataframe$PIB)
+      correlacion_log = cor(log(dataframe[, variable]), dataframe$PIB)
+      correlacion_PIB_log = cor(dataframe[, variable], log(dataframe$PIB))
+      correlacion_log_PIB_log = cor(log(dataframe[, variable]), log(dataframe$PIB))
+      
+      variables = c(variables, variable, paste0(variable, '_log'))
+      correlaciones = c(correlaciones, correlacion, correlacion_log)
+      abs_correlaciones = c(abs_correlaciones, abs(correlacion), abs(correlacion_log))
+      correlaciones_PIB_log = c(correlaciones_PIB_log, correlacion_PIB_log, correlacion_log_PIB_log)
+      abs_correlaciones_PIB_log = c(abs_correlaciones_PIB_log, abs(correlacion_PIB_log), abs(correlacion_log_PIB_log))
+    }
+  }
+  
+  correlaciones_df <- data.frame(
+    variables,
+    correlaciones,
+    abs_correlaciones,
+    correlaciones_PIB_log,
+    abs_correlaciones_PIB_log
+  ) %>% 
+    mutate(mejora_PIB_log = abs_correlaciones < abs_correlaciones_PIB_log)
+  return(correlaciones_df)
+}
+correlaciones_df <- comparador_correlaciones(datos_paises)
 
-# Población sin hogar por desastres naturales.
-plot(datos_paises$AFECTADOS, datos_paises$PIB)
-cor(datos_paises$AFECTADOS, datos_paises$PIB)
 
-# Tasa de homicidios cada 100.000 personas.
-plot(datos_paises$HOMICIDIO, datos_paises$PIB)
-cor(datos_paises$HOMICIDIO, datos_paises$PIB)
-
-# Mortalidad de niños menores de 5 años en miles.
-plot(datos_paises$MORTINF, datos_paises$PIB)
-cor(datos_paises$MORTINF, datos_paises$PIB)
-
-# Tasa de mortalidad maternal cada 100 nacimientos.
-plot(datos_paises$MORTMAT, datos_paises$PIB)
-cor(datos_paises$MORTMAT, datos_paises$PIB)
-
-# Turistas internacionales en millones.
-plot(datos_paises$TURISMO, datos_paises$PIB)
-cor(datos_paises$TURISMO, datos_paises$PIB)
-
-# Porcentaje de uso de internet.
-plot(datos_paises$INTERNET, datos_paises$PIB)
-cor(datos_paises$INTERNET, datos_paises$PIB)
-
-# Porcentaje de vćtima de violencia entre parejas.
-plot(datos_paises$VIOLENCIA, datos_paises$PIB)
-cor(datos_paises$VIOLENCIA, datos_paises$PIB)
-
-# Expectativa de vida en años.
-plot(datos_paises$VIDA, datos_paises$PIB)
-cor(datos_paises$VIDA, datos_paises$PIB)
-
-# Subscripciones a telefonía celular cada 1.000 personas.
-plot(datos_paises$CELULAR, datos_paises$PIB)
-cor(datos_paises$CELULAR, datos_paises$PIB)
-
-# Tasa de deserción escolar primaria.
-plot(datos_paises$DESERCION, datos_paises$PIB)
-cor(datos_paises$DESERCION, datos_paises$PIB)
-
-# Tasa de encarcelamiento cada 100.000 personas.
-plot(datos_paises$PRISION, datos_paises$PIB)
-cor(datos_paises$PRISION, datos_paises$PIB)
-
-# Porcentaje de uso de energía renovable.
-plot(datos_paises$RENOVABLE, datos_paises$PIB)
-cor(datos_paises$RENOVABLE, datos_paises$PIB)
-
-# Porcentaje de escaños parlamentarios ocupados por mujeres.
-plot(datos_paises$PARLAMENTO, datos_paises$PIB)
-cor(datos_paises$PARLAMENTO, datos_paises$PIB)
-
-# Porcentaje de población que es inmigrante.
-plot(datos_paises$INMIGRANTES, datos_paises$PIB)
-cor(datos_paises$INMIGRANTES, datos_paises$PIB)
-
-############### Identificación de candidatos ouliers ###############
-
+############################## Pregunta 1 ##############################
 # IDH
-respuesta1_a <- datos_paises %>%
-  ggplot() +
-  aes(x = IDH) +
-  geom_histogram() +
-  labs(
-    x = 'Índice de Desarrollo Humano',
-    y = 'Cantidad'
-  )
-respuesta1_a
+histograma_IDH <- histograma('IDH', datos_paises, datos_paises, FALSE, 'Histograma base')
+histograma_IDH
 
-media_idh <- mean(datos_paises$IDH)
-de_idh <- sd(datos_paises$IDH)
-cuantiles_idh <- quantile(datos_paises$IDH, c(0.01, 0.99))
-lim_inf_idh <- cuantiles_idh[1]
-lim_sup_idh <- cuantiles_idh[2]
+candidatos_percentil_IDH <- por_percentil('IDH', FALSE, TRUE)
+histograma_IDH_percentil <- histograma('IDH', datos_paises, candidatos_percentil_IDH, FALSE, 'Outliers por percentiles')
+histograma_IDH_percentil
 
-# Percentiles 1% y 99%
-candidatos_percentil_idh <- datos_paises %>% 
-  arrange(IDH) %>% 
-  filter(IDH < lim_inf_idh | IDH > lim_sup_idh)
+candidatos_intervalo_IDH <- por_intervalo('IDH', 2, FALSE, TRUE)
+histograma_IDH_intervalo <- histograma('IDH', datos_paises, candidatos_intervalo_IDH, FALSE, 'Outliers por intervalo de variabilidad delta 2')
+histograma_IDH_intervalo
 
-respuesta1_a_percentil <- datos_paises %>%
-  ggplot() +
-  aes(x = IDH, fill = PAIS %in% candidatos_percentil_idh$PAIS) +
-  geom_histogram() +
-  labs(
-    x = 'Índice de Desarrollo Humano',
-    y = 'Cantidad',
-    title = 'Candidatos a outliers por percentiles 1% a 99%'
-  ) +
-  theme(legend.position = 'none')
-respuesta1_a_percentil
+candidatos_valor_z_IDH <- por_z_robusto('IDH', 3, FALSE, TRUE)
+histograma_IDH_valor_z <- histograma('IDH', datos_paises, candidatos_valor_z_IDH, FALSE, 'Outliers por valor-Z robusto delta 3')
+histograma_IDH_valor_z
 
-# Intervalo de variabilidad con delta 2
-candidatos_intervalo_idh <- datos_paises %>% 
-  arrange(IDH) %>% 
-  filter(IDH < (media_idh - (2 * de_idh)) | IDH > (media_idh + (2 * de_idh)))
-
-respuesta1_a_intervalo <- datos_paises %>%
-  ggplot() +
-  aes(x = IDH, fill = PAIS %in% candidatos_intervalo_idh$PAIS) +
-  geom_histogram() +
-  labs(
-    x = 'Índice de Desarrollo Humano',
-    y = 'Cantidad',
-    title = 'Candidatos a outliers por intervalo de variabilidad con delta 2'
-  ) +
-  theme(legend.position = 'none')
-respuesta1_a_intervalo
-
-# Valor-Z robusto con delta 3
-candidatos_z_idh <- datos_paises %>% 
-  mutate(
-    Error_IDH = abs(IDH - median(datos_paises$IDH)),
-    Valor_Z_IDH = Error_IDH / median(Error_IDH)
-  ) %>% 
-  arrange(Valor_Z_IDH) %>% 
-  filter(Valor_Z_IDH > 3)
-
-respuesta1_a_z <- datos_paises %>%
-  ggplot() +
-  aes(x = IDH, fill = PAIS %in% candidatos_z_idh$PAIS) +
-  geom_histogram() +
-  labs(
-    x = 'Índice de Desarrollo Humano',
-    y = 'Cantidad',
-    title = 'Candidatos a outliers por Valor-Z robusto con delta 3'
-  ) +
-  theme(legend.position = 'none')
-respuesta1_a_z
-
-# Comparación de promedio y desviación estándar
-parametros_percentil_idh <- datos_paises %>% 
-  filter(IDH > lim_inf_idh & IDH < lim_sup_idh) %>% 
-  summarise(prom = mean(IDH), desest = sd(IDH), corr = cor(IDH, PIB))
-
-parametros_intervalo_idh <- datos_paises %>% 
-  filter(IDH > (media_idh - (2 * de_idh)) & IDH < (media_idh + (2 * de_idh))) %>% 
-  summarise(prom = mean(IDH), desest = sd(IDH), corr = cor(IDH, PIB))
-
-parametros_z_idh <- datos_paises %>% 
-  mutate(
-    Error_IDH = abs(IDH - median(datos_paises$IDH)),
-    Valor_Z_IDH = Error_IDH / median(Error_IDH)
-  ) %>%
-  filter(Valor_Z_IDH < 3) %>% 
-  summarise(prom = mean(IDH), desest = sd(IDH), corr = cor(IDH, PIB))
-
-parametros1a <- data.frame(
-  'Grupo' = c(
-    'IDH Original', 
-    'Percentiles 1% al 99%', 
-    'Intervalo de variabilidad delta 2', 
-    'Valor-Z robusto con delta 3'
-  ),
-  'Promedio' = c(
-    media_idh,
-    parametros_percentil_idh$prom,
-    parametros_intervalo_idh$prom,
-    parametros_z_idh$prom
-  ),
-  'Desviación_estándar' = c(
-    de_idh,
-    parametros_percentil_idh$desest,
-    parametros_intervalo_idh$desest,
-    parametros_z_idh$desest
-  ),
-  'Correlación_con_PIB' = c(
-    cor(datos_paises$IDH, datos_paises$PIB),
-    parametros_percentil_idh$corr,
-    parametros_intervalo_idh$corr,
-    parametros_z_idh$corr
-  )
-)
+estadisticos_IDH <- comparacion_estadisticos('IDH', 2, 3, FALSE, TRUE)
+resumen_IDH <- estadisticos_IDH[[1]]
+resumen_IDH
 
 
-# FAO
-respuesta1_b <- datos_paises %>%
-  ggplot() +
-  aes(x = FAO) +
-  geom_histogram() +
-  labs(
-    x = 'Índice del precio de alimentos FAO',
-    y = 'Cantidad'
-  )
-respuesta1_b
+# Logaritmo de DIOXIDO
+histograma_DIOXIDO <- histograma('DIOXIDO', datos_paises, datos_paises, TRUE, 'Histograma base')
+histograma_DIOXIDO
 
-media_fao <- mean(datos_paises$FAO)
-de_fao <- sd(datos_paises$FAO)
-cuantiles_fao <- quantile(datos_paises$FAO, c(0.01, 0.99))
-lim_inf_fao <- cuantiles_fao[1]
-lim_sup_fao <- cuantiles_fao[2]
+candidatos_percentil_DIOXIDO <- por_percentil('DIOXIDO', TRUE, TRUE)
+histograma_DIOXIDO_percentil <- histograma('DIOXIDO', datos_paises, candidatos_percentil_DIOXIDO, TRUE, 'Outliers por percentiles')
+histograma_DIOXIDO_percentil
 
-# Percentiles 1% y 99%
-candidatos_percentil_fao <- datos_paises %>% 
-  arrange(FAO) %>% 
-  filter(FAO < lim_inf_fao | FAO > lim_sup_fao)
+candidatos_intervalo_DIOXIDO <- por_intervalo('DIOXIDO', 2, TRUE, TRUE)
+histograma_DIOXIDO_intervalo <- histograma('DIOXIDO', datos_paises, candidatos_intervalo_DIOXIDO, TRUE, 'Outliers por intervalo de variabilidad delta 2')
+histograma_DIOXIDO_intervalo
 
-respuesta1_b_percentil <- datos_paises %>%
-  ggplot() +
-  aes(x = FAO, fill = PAIS %in% candidatos_percentil_fao$PAIS) +
-  geom_histogram() +
-  labs(
-    x = 'Índice del precio de alimentos FAO',
-    y = 'Cantidad',
-    title = 'Candidatos a outliers por percentiles 1% a 99%'
-  ) +
-  theme(legend.position = 'none')
-respuesta1_b_percentil
+candidatos_valor_z_DIOXIDO <- por_z_robusto('DIOXIDO', 3.5, TRUE, TRUE)
+histograma_DIOXIDO_valor_z <- histograma('DIOXIDO', datos_paises, candidatos_valor_z_DIOXIDO, TRUE, 'Outliers por valor-Z robusto delta 3,5')
+histograma_DIOXIDO_valor_z
 
-# Intervalo de variabilidad con delta 3
-candidatos_intervalo_fao <- datos_paises %>% 
-  arrange(FAO) %>% 
-  filter(FAO < (media_fao - (3 * de_fao)) | FAO > (media_fao + (3 * de_fao)))
-
-respuesta1_b_intervalo <- datos_paises %>%
-  ggplot() +
-  aes(x = FAO, fill = PAIS %in% candidatos_intervalo_fao$PAIS) +
-  geom_histogram() +
-  labs(
-    x = 'Índice del precio de alimentos FAO',
-    y = 'Cantidad',
-    title = 'Candidatos a outliers por intervalo de variabilidad con delta 3'
-  ) +
-  theme(legend.position = 'none')
-respuesta1_b_intervalo
-
-# Valor-Z robusto con delta 4
-candidatos_z_fao <- datos_paises %>% 
-  mutate(
-    Error_FAO = abs(FAO - median(datos_paises$FAO)),
-    Valor_Z_FAO = Error_FAO / median(Error_FAO)
-  ) %>% 
-  arrange(Valor_Z_FAO) %>% 
-  filter(Valor_Z_FAO > 4)
-
-respuesta1_b_z <- datos_paises %>%
-  ggplot() +
-  aes(x = FAO, fill = PAIS %in% candidatos_z_fao$PAIS) +
-  geom_histogram() +
-  labs(
-    x = 'Índice del precio de alimentos FAO',
-    y = 'Cantidad',
-    title = 'Candidatos a outliers por Valor-Z robusto con delta 4'
-  ) +
-  theme(legend.position = 'none')
-respuesta1_b_z
-
-# Comparación de promedio y desviación estándar
-parametros_percentil_fao <- datos_paises %>% 
-  filter(FAO > lim_inf_fao & FAO < lim_sup_fao) %>% 
-  summarise(prom = mean(FAO), desest = sd(FAO), corr = cor(FAO, PIB))
-
-parametros_intervalo_fao <- datos_paises %>% 
-  filter(FAO > (media_fao - (3 * de_fao)) & FAO < (media_fao + (3 * de_fao))) %>% 
-  summarise(prom = mean(FAO), desest = sd(FAO), corr = cor(FAO, PIB))
-
-parametros_z_fao <- datos_paises %>% 
-  mutate(
-    Error_FAO = abs(FAO - median(datos_paises$FAO)),
-    Valor_Z_FAO = Error_FAO / median(Error_FAO)
-  ) %>%
-  filter(Valor_Z_FAO < 4) %>% 
-  summarise(prom = mean(FAO), desest = sd(FAO), corr = cor(FAO, PIB))
-
-parametros1b <- data.frame(
-  'Grupo' = c(
-    'FAO Original', 
-    'Percentiles 1% al 99%', 
-    'Intervalo de variabilidad delta 3', 
-    'Valor-Z robusto con delta 4'
-  ),
-  'Promedio' = c(
-    media_fao,
-    parametros_percentil_fao$prom,
-    parametros_intervalo_fao$prom,
-    parametros_z_fao$prom
-  ),
-  'Desviación_estándar' = c(
-    de_fao,
-    parametros_percentil_fao$desest,
-    parametros_intervalo_fao$desest,
-    parametros_z_fao$desest
-  ),
-  'Correlación_con_PIB' = c(
-    cor(datos_paises$FAO, datos_paises$PIB),
-    parametros_percentil_fao$corr,
-    parametros_intervalo_fao$corr,
-    parametros_z_fao$corr
-  )
-)
+estadisticos_DIOXIDO <- comparacion_estadisticos('DIOXIDO', 2, 3.5, TRUE, TRUE)
+resumen_DIOXIDO <- estadisticos_DIOXIDO[[1]]
+resumen_DIOXIDO
 
 
 # INTERNET
-respuesta1_a <- datos_paises %>%
-  ggplot() +
-  aes(x = INTERNET) +
-  geom_histogram() +
-  labs(
-    x = 'Porcentaje de uso de internet',
-    y = 'Cantidad'
-  )
-respuesta1_a
+histograma_INTERNET <- histograma('INTERNET', datos_paises, datos_paises, FALSE, 'Histograma base')
+histograma_INTERNET
 
-media_internet <- mean(datos_paises$INTERNET)
-de_internet <- sd(datos_paises$INTERNET)
-cuantiles_internet <- quantile(datos_paises$INTERNET, c(0.01, 0.99))
-lim_inf_internet <- cuantiles_internet[1]
-lim_sup_internet <- cuantiles_internet[2]
+candidatos_percentil_INTERNET <- por_percentil('INTERNET', FALSE, TRUE)
+histograma_INTERNET_percentil <- histograma('INTERNET', datos_paises, candidatos_percentil_INTERNET, FALSE, 'Outliers por percentiles')
+histograma_INTERNET_percentil
 
-# Percentiles 1% y 99%
-candidatos_percentil_internet <- datos_paises %>% 
-  arrange(INTERNET) %>% 
-  filter(INTERNET < lim_inf_internet | INTERNET > lim_sup_internet)
+candidatos_intervalo_INTERNET <- por_intervalo('INTERNET', 1.75, FALSE, TRUE)
+histograma_INTERNET_intervalo <- histograma('INTERNET', datos_paises, candidatos_intervalo_INTERNET, FALSE, 'Outliers por intervalo de variabilidad delta 1,75')
+histograma_INTERNET_intervalo
 
-respuesta1_c_percentil <- datos_paises %>%
-  ggplot() +
-  aes(x = INTERNET, fill = PAIS %in% candidatos_percentil_internet$PAIS) +
-  geom_histogram() +
-  labs(
-    x = 'Porcentaje de uso de internet',
-    y = 'Cantidad',
-    title = 'Candidatos a outliers por percentiles 1% a 99%'
-  ) +
-  theme(legend.position = 'none')
-respuesta1_c_percentil
+candidatos_valor_z_INTERNET <- por_z_robusto('INTERNET', 2, FALSE, TRUE)
+histograma_INTERNET_valor_z <- histograma('INTERNET', datos_paises, candidatos_valor_z_INTERNET, FALSE, 'Outliers por valor-Z robusto delta 2')
+histograma_INTERNET_valor_z
 
-# Intervalo de variabilidad con delta 1.8
-candidatos_intervalo_internet <- datos_paises %>% 
-  arrange(INTERNET) %>% 
-  filter(INTERNET < (media_internet - (1.8 * de_internet)) | INTERNET > (media_internet + (1.8 * de_internet)))
-
-respuesta1_c_intervalo <- datos_paises %>%
-  ggplot() +
-  aes(x = INTERNET, fill = PAIS %in% candidatos_intervalo_internet$PAIS) +
-  geom_histogram() +
-  labs(
-    x = 'Porcentaje de uso de internet',
-    y = 'Cantidad',
-    title = 'Candidatos a outliers por intervalo de variabilidad con delta 1,8'
-  ) +
-  theme(legend.position = 'none')
-respuesta1_c_intervalo
-
-# Valor-Z robusto con delta 2
-candidatos_z_internet <- datos_paises %>% 
-  mutate(
-    Error_INTERNET = abs(INTERNET - median(datos_paises$INTERNET)),
-    Valor_Z_INTERNET = Error_INTERNET / median(Error_INTERNET)
-  ) %>% 
-  arrange(Valor_Z_INTERNET) %>% 
-  filter(Valor_Z_INTERNET > 2)
-
-respuesta1_c_z <- datos_paises %>%
-  ggplot() +
-  aes(x = INTERNET, fill = PAIS %in% candidatos_z_internet$PAIS) +
-  geom_histogram() +
-  labs(
-    x = 'Porcentaje de uso de internet',
-    y = 'Cantidad',
-    title = 'Candidatos a outliers por Valor-Z robusto con delta 2'
-  ) +
-  theme(legend.position = 'none')
-respuesta1_c_z
-
-# Comparación de promedio y desviación estándar
-parametros_percentil_internet <- datos_paises %>% 
-  filter(INTERNET > lim_inf_internet & INTERNET < lim_sup_internet) %>% 
-  summarise(prom = mean(INTERNET), desest = sd(INTERNET), corr = cor(INTERNET, PIB))
-
-parametros_intervalo_internet <- datos_paises %>% 
-  filter(INTERNET > (media_internet - (1.8 * de_internet)) & INTERNET < (media_internet + (1.8 * de_internet))) %>% 
-  summarise(prom = mean(INTERNET), desest = sd(INTERNET), corr = cor(INTERNET, PIB))
-
-parametros_z_internet <- datos_paises %>% 
-  mutate(
-    Error_INTERNET = abs(INTERNET - median(datos_paises$INTERNET)),
-    Valor_Z_INTERNET = Error_INTERNET / median(Error_INTERNET)
-  ) %>%
-  filter(Valor_Z_INTERNET < 2) %>% 
-  summarise(prom = mean(INTERNET), desest = sd(INTERNET), corr = cor(INTERNET, PIB))
-
-parametros1c <- data.frame(
-  'Grupo' = c(
-    'INTERNET Original', 
-    'Percentiles 1% al 99%', 
-    'Intervalo de variabilidad delta 1.8', 
-    'Valor-Z robusto con delta 2'
-  ),
-  'Promedio' = c(
-    media_internet,
-    parametros_percentil_internet$prom,
-    parametros_intervalo_internet$prom,
-    parametros_z_internet$prom
-  ),
-  'Desviación_estándar' = c(
-    de_internet,
-    parametros_percentil_internet$desest,
-    parametros_intervalo_internet$desest,
-    parametros_z_internet$desest
-  ),
-  'Correlación_con_PIB' = c(
-    cor(datos_paises$INTERNET, datos_paises$PIB),
-    parametros_percentil_internet$corr,
-    parametros_intervalo_internet$corr,
-    parametros_z_internet$corr
-  )
-)
+estadisticos_INTERNET <- comparacion_estadisticos('INTERNET', 1.75, 2, FALSE, TRUE)
+resumen_INTERNET <- estadisticos_INTERNET[[1]]
+resumen_INTERNET
 
 
-# INMIGRANTES
-respuesta1_d <- datos_paises %>%
-  ggplot() +
-  aes(x = INMIGRANTES) +
-  geom_histogram() +
-  labs(
-    x = 'Porcentaje de población inmigrante',
-    y = 'Cantidad'
-  )
-respuesta1_d
+# Logaritmo de MORTMAT
+histograma_MORTMAT <- histograma('MORTMAT', datos_paises, datos_paises, TRUE, 'Histograma base')
+histograma_MORTMAT
 
-media_inmigrantes <- mean(datos_paises$INMIGRANTES)
-de_inmigrantes <- sd(datos_paises$INMIGRANTES)
-cuantiles_inmigrantes <- quantile(datos_paises$INMIGRANTES, c(0.01, 0.99))
-lim_inf_inmigrantes <- cuantiles_inmigrantes[1]
-lim_sup_inmigrantes <- cuantiles_inmigrantes[2]
+candidatos_percentil_MORTMAT <- por_percentil('MORTMAT', TRUE, TRUE)
+histograma_MORTMAT_percentil <- histograma('MORTMAT', datos_paises, candidatos_percentil_MORTMAT, TRUE, 'Outliers por percentiles')
+histograma_MORTMAT_percentil
 
-# Percentiles 1% y 99%
-candidatos_percentil_inmigrantes <- datos_paises %>% 
-  arrange(INMIGRANTES) %>% 
-  filter(INMIGRANTES < lim_inf_inmigrantes | INMIGRANTES > lim_sup_inmigrantes)
+candidatos_intervalo_MORTMAT <- por_intervalo('MORTMAT', 2, TRUE, TRUE)
+histograma_MORTMAT_intervalo <- histograma('MORTMAT', datos_paises, candidatos_intervalo_MORTMAT, TRUE, 'Outliers por intervalo de variabilidad delta 2')
+histograma_MORTMAT_intervalo
 
-respuesta1_d_percentil <- datos_paises %>%
-  ggplot() +
-  aes(x = INMIGRANTES, fill = PAIS %in% candidatos_percentil_inmigrantes$PAIS) +
-  geom_histogram() +
-  labs(
-    x = 'Porcentaje de población inmigrante',
-    y = 'Cantidad',
-    title = 'Candidatos a outliers por percentiles 1% a 99%'
-  ) +
-  theme(legend.position = 'none')
-respuesta1_d_percentil
+candidatos_valor_z_MORTMAT <- por_z_robusto('MORTMAT', 2, TRUE, TRUE)
+histograma_MORTMAT_valor_z <- histograma('MORTMAT', datos_paises, candidatos_valor_z_MORTMAT, TRUE, 'Outliers por valor-Z robusto delta 2')
+histograma_MORTMAT_valor_z
 
-# Intervalo de variabilidad con delta 4
-candidatos_intervalo_inmigrantes <- datos_paises %>% 
-  arrange(INMIGRANTES) %>% 
-  filter(INMIGRANTES < (media_inmigrantes - (4 * de_inmigrantes)) | INMIGRANTES > (media_inmigrantes + (4 * de_inmigrantes)))
-
-respuesta1_d_intervalo <- datos_paises %>%
-  ggplot() +
-  aes(x = INMIGRANTES, fill = PAIS %in% candidatos_intervalo_inmigrantes$PAIS) +
-  geom_histogram() +
-  labs(
-    x = 'Porcentaje de población inmigrante',
-    y = 'Cantidad',
-    title = 'Candidatos a outliers por intervalo de variabilidad con delta 4'
-  ) +
-  theme(legend.position = 'none')
-respuesta1_d_intervalo
-
-# Valor-Z robusto con delta 6
-candidatos_z_inmigrantes <- datos_paises %>% 
-  mutate(
-    Error_INMIGRANTES = abs(INMIGRANTES - median(datos_paises$INMIGRANTES)),
-    Valor_Z_INMIGRANTES = Error_INMIGRANTES / median(Error_INMIGRANTES)
-  ) %>% 
-  arrange(Valor_Z_INMIGRANTES) %>% 
-  filter(Valor_Z_INMIGRANTES > 6)
-
-respuesta1_d_z <- datos_paises %>%
-  ggplot() +
-  aes(x = INMIGRANTES, fill = PAIS %in% candidatos_z_inmigrantes$PAIS) +
-  geom_histogram() +
-  labs(
-    x = 'Porcentaje de población inmigrante',
-    y = 'Cantidad',
-    title = 'Candidatos a outliers por Valor-Z robusto con delta 6'
-  ) +
-  theme(legend.position = 'none')
-respuesta1_d_z
-
-# Comparación de promedio y desviación estándar
-parametros_percentil_inmigrantes <- datos_paises %>% 
-  filter(INMIGRANTES > lim_inf_inmigrantes & INMIGRANTES < lim_sup_inmigrantes) %>% 
-  summarise(prom = mean(INMIGRANTES), desest = sd(INMIGRANTES), corr = cor(INMIGRANTES, PIB))
-
-parametros_intervalo_inmigrantes <- datos_paises %>% 
-  filter(INMIGRANTES > (media_inmigrantes - (4 * de_inmigrantes)) & INMIGRANTES < (media_inmigrantes + (4 * de_inmigrantes))) %>% 
-  summarise(prom = mean(INMIGRANTES), desest = sd(INMIGRANTES), corr = cor(INMIGRANTES, PIB))
-
-parametros_z_inmigrantes <- datos_paises %>% 
-  mutate(
-    Error_INMIGRANTES = abs(INMIGRANTES - median(datos_paises$INMIGRANTES)),
-    Valor_Z_INMIGRANTES = Error_INMIGRANTES / median(Error_INMIGRANTES)
-  ) %>%
-  filter(Valor_Z_INMIGRANTES < 6) %>% 
-  summarise(prom = mean(INMIGRANTES), desest = sd(INMIGRANTES), corr = cor(INMIGRANTES, PIB))
-
-parametros1d <- data.frame(
-  'Grupo' = c(
-    'INMIGRANTES Original', 
-    'Percentiles 1% al 99%', 
-    'Intervalo de variabilidad delta 4', 
-    'Valor-Z robusto con delta 6'
-  ),
-  'Promedio' = c(
-    media_inmigrantes,
-    parametros_percentil_inmigrantes$prom,
-    parametros_intervalo_inmigrantes$prom,
-    parametros_z_inmigrantes$prom
-  ),
-  'Desviación_estándar' = c(
-    de_inmigrantes,
-    parametros_percentil_inmigrantes$desest,
-    parametros_intervalo_inmigrantes$desest,
-    parametros_z_inmigrantes$desest
-  ),
-  'Correlación_con_PIB' = c(
-    cor(datos_paises$INMIGRANTES, datos_paises$PIB),
-    parametros_percentil_inmigrantes$corr,
-    parametros_intervalo_inmigrantes$corr,
-    parametros_z_inmigrantes$corr
-  )
-)
-
+estadisticos_MORTMAT <- comparacion_estadisticos('MORTMAT', 2, 2, TRUE, TRUE)
+resumen_MORTMAT <- estadisticos_MORTMAT[[1]]
+resumen_MORTMAT
