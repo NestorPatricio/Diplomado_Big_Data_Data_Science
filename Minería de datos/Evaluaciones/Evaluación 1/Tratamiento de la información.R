@@ -17,7 +17,13 @@ head(datos_paises, n = 10)
 ############################## FUNCIONES ##############################
 
 ######## Gráficos de variables contra PIB normal y en forma logarítmica ########
-graficos <- function(datos, variable, log_variable = FALSE) {
+graficos_PIB <- function(
+  datos,
+  variable,
+  log_variable = FALSE,
+  titulo = '',
+  color_smooth
+) {
   if(log_variable) {
     valor_x = log(datos[, variable])
     texto_x = paste('Logaritmo de', variable)
@@ -31,20 +37,25 @@ graficos <- function(datos, variable, log_variable = FALSE) {
       aes(x = valor_x, y = PIB)
     ) +
     geom_point() +
-    geom_smooth(method = 'lm') +
+    geom_smooth(method = 'lm', colour = color_smooth) +
     labs(
-      x = texto_x, y = 'PIB'
-    )
+      title = titulo,
+      x = texto_x,
+      y = 'PIB'
+    ) + theme_minimal()
   
   grafico_log = datos %>% 
     ggplot(
       aes(x = valor_x, y = log(PIB))
     ) +
     geom_point() +
-    geom_smooth(method = 'lm') +
+    geom_smooth(method = 'lm', colour = color_smooth) +
     labs(
-      x = texto_x, y = 'Logaritmo de PIB'
-    )
+      title = titulo,
+      x = texto_x,
+      y = 'Logaritmo de PIB'
+    ) +
+    theme_minimal()
   return(list(grafico_nolog, grafico_log))
 }
 
@@ -266,10 +277,10 @@ comparacion_estadisticos <- function(
   } else {
     numero_grafico = 1
   }
-  dataframe_graf <- graficos(dataframe, nombre_variable, FALSE)[numero_grafico]
-  percentiles_graf <- graficos(percentiles, nombre_variable, FALSE)[numero_grafico]
-  intervalo_graf <- graficos(intervalo, nombre_variable, FALSE)[numero_grafico]
-  valor_z_graf <- graficos(valor_z, nombre_variable, FALSE)[numero_grafico]
+  dataframe_graf <- graficos_PIB(dataframe, nombre_variable, FALSE, 'Datos originales', 'blue')[[numero_grafico]]
+  percentiles_graf <- graficos_PIB(percentiles, nombre_variable, FALSE, 'Percentiles 1% y 99%', 'red')[[numero_grafico]]
+  intervalo_graf <- graficos_PIB(intervalo, nombre_variable, FALSE, 'Intervalo de variabilidad', 'darkgreen')[[numero_grafico]]
+  valor_z_graf <- graficos_PIB(valor_z, nombre_variable, FALSE, 'Valor-Z robusto', 'orange')[[numero_grafico]]
   
   return(list(
     resumen_df,
@@ -423,77 +434,77 @@ cor(log(datos_paises$PIB), datos_paises$IDH)
 mean(datos_paises$IDH)
 sd(datos_paises$IDH)
 median(datos_paises$IDH)
-grafico_IDH <- graficos(datos_paises, 'IDH', FALSE)[[2]]
+grafico_IDH <- graficos_PIB(datos_paises, 'IDH', FALSE, color_smooth = 'blue')[[2]]
 grafico_IDH
 
 cor(log(datos_paises$PIB), log(datos_paises$DIOXIDO))
 mean(log(datos_paises$DIOXIDO))
 sd(log(datos_paises$DIOXIDO))
 median(log(datos_paises$DIOXIDO))
-grafico_DIOXIDO_log <- graficos(datos_paises, 'DIOXIDO', TRUE)[[2]]
+grafico_DIOXIDO_log <- graficos_PIB(datos_paises, 'DIOXIDO', TRUE, color_smooth = 'blue')[[2]]
 grafico_DIOXIDO_log
 
 cor(log(datos_paises$PIB), datos_paises$INTERNET)
 mean(datos_paises$INTERNET)
 sd(datos_paises$INTERNET)
 median(datos_paises$INTERNET)
-grafico_INTERNET <- graficos(datos_paises, 'INTERNET', FALSE)[[2]]
+grafico_INTERNET <- graficos_PIB(datos_paises, 'INTERNET', FALSE, color_smooth = 'blue')[[2]]
 grafico_INTERNET
 
 cor(log(datos_paises$PIB), log(datos_paises$MORTMAT))
 mean(log(datos_paises$MORTMAT))
 sd(log(datos_paises$MORTMAT))
 median(log(datos_paises$MORTMAT))
-grafico_MORTMAT_log <- graficos(datos_paises, 'MORTMAT', TRUE)[[2]]
+grafico_MORTMAT_log <- graficos_PIB(datos_paises, 'MORTMAT', TRUE, color_smooth = 'red')[[2]]
 grafico_MORTMAT_log
 
 cor(log(datos_paises$PIB), log(datos_paises$MORTINF))
 mean(log(datos_paises$MORTINF))
 sd(log(datos_paises$MORTINF))
 median(log(datos_paises$MORTINF))
-grafico_MORTINF_log <- graficos(datos_paises, 'MORTINF', TRUE)[[2]]
+grafico_MORTINF_log <- graficos_PIB(datos_paises, 'MORTINF', TRUE, color_smooth = 'red')[[2]]
 grafico_MORTINF_log
 
 cor(log(datos_paises$PIB), log(datos_paises$FAO))
 mean(log(datos_paises$FAO))
 sd(log(datos_paises$FAO))
 median(log(datos_paises$FAO))
-grafico_FAO_log <- graficos(datos_paises, 'FAO', TRUE)[[2]]
+grafico_FAO_log <- graficos_PIB(datos_paises, 'FAO', TRUE, color_smooth = 'red')[[2]]
 grafico_FAO_log
 
 cor(log(datos_paises$PIB), datos_paises$ESCOLARIDAD)
 mean(datos_paises$ESCOLARIDAD)
 sd(datos_paises$ESCOLARIDAD)
 median(datos_paises$ESCOLARIDAD)
-grafico_ESCOLARIDAD <- graficos(datos_paises, 'ESCOLARIDAD', FALSE)[[2]]
+grafico_ESCOLARIDAD <- graficos_PIB(datos_paises, 'ESCOLARIDAD', FALSE, color_smooth = 'blue')[[2]]
 grafico_ESCOLARIDAD
 
 cor(log(datos_paises$PIB), datos_paises$ELECTRICIDAD)
 mean(datos_paises$ELECTRICIDAD)
 sd(datos_paises$ELECTRICIDAD)
 median(datos_paises$ELECTRICIDAD)
-grafico_ELECTRICIDAD <- graficos(datos_paises, 'ELECTRICIDAD', FALSE)[[2]]
+grafico_ELECTRICIDAD <- graficos_PIB(datos_paises, 'ELECTRICIDAD', FALSE, color_smooth = 'blue')[[2]]
 grafico_ELECTRICIDAD
 
 cor(log(datos_paises$PIB), datos_paises$VIDA)
 mean(datos_paises$VIDA)
 sd(datos_paises$VIDA)
 median(datos_paises$VIDA)
-grafico_VIDA <- graficos(datos_paises, 'VIDA', FALSE)[[2]]
+grafico_VIDA <- graficos_PIB(datos_paises, 'VIDA', FALSE, color_smooth = 'blue')[[2]]
 grafico_VIDA
 
 cor(log(datos_paises$PIB), datos_paises$GENERO)
 mean(datos_paises$GENERO)
 sd(datos_paises$GENERO)
 median(datos_paises$GENERO)
-grafico_GENERO <- graficos(datos_paises, 'GENERO', FALSE)[[2]]
+grafico_GENERO <- graficos_PIB(datos_paises, 'GENERO', FALSE, color_smooth = 'red')[[2]]
 grafico_GENERO
 
 cor(log(datos_paises$PIB), datos_paises$DESERCION)
 mean(datos_paises$DESERCION)
 sd(datos_paises$DESERCION)
 median(datos_paises$DESERCION)
-grafico_DESERCION <- graficos(datos_paises, 'DESERCION', FALSE)[[2]]
+grafico_DESERCION <- graficos_PIB(datos_paises, 'DESERCION', FALSE, color_smooth = 'red')[[2]]
 grafico_DESERCION
 
 
@@ -544,7 +555,209 @@ IPC_log <- log(datos_paises$IPC)
 SUICIDIOMAS_log <- log(datos_paises$SUICIDIOMAS)
 POB_log <- log(datos_paises$POB)
 
+datos_paises_nuevo <- data.frame(
+  PIB_log,
+  IDH, INTERNET, ESCOLARIDAD, ELECTRICIDAD, VIDA, CELULAR, INMIGRANTES, FOSIL, TURISMO, PARLAMENTO, BOSQUE,
+  GENERO, DESERCION, RENOVABLE, VIOLENCIA, SUICIDIOFEM, HOMICIDIO, AFECTADOS, DESASTRE,
+  DIOXIDO_log, PRISION_log,
+  MORTMAT_log, MORTINF_log, FAO_log, GINI_log, IPC_log, SUICIDIOMAS_log, POB_log
+)
 
-modelo_final <- lm()
+# Revisión de las variables que fueron mencionadas en la hipótesis
+datos_hipotesis_df <- data.frame(
+  IDH, DIOXIDO_log, INTERNET, ESCOLARIDAD, ELECTRICIDAD, VIDA,
+  MORTMAT_log, MORTINF_log, FAO_log, GENERO, DESERCION
+)
 
+correlaciones_hipotesis <- cor(datos_hipotesis_df)
+graficos_hipotesis <- pairs(datos_hipotesis_df)
+graficos_hipotesis
+
+
+# Se genera el modelo con todas las variables
+modelo_final_todos_1 <- lm(PIB_log ~ 
+  IDH + INTERNET + ESCOLARIDAD + ELECTRICIDAD + VIDA + CELULAR + INMIGRANTES + FOSIL + TURISMO + PARLAMENTO + BOSQUE +
+  GENERO + DESERCION + RENOVABLE + VIOLENCIA + SUICIDIOFEM + HOMICIDIO + AFECTADOS + DESASTRE +
+  DIOXIDO_log + PRISION_log +
+  MORTMAT_log + MORTINF_log + FAO_log + GINI_log + IPC_log + SUICIDIOMAS_log + POB_log
+)
+summary(modelo_final_todos_1)
+# R2: 0.953
+# R2 ajustado: 0.9447
+grafico_todos_1 <- plot(predict(modelo_final_todos_1), PIB_log)
+
+# Se sacan todas las variables con una probabilidad(t-test) > 0.1
+modelo_final_todos_2 <- lm(PIB_log ~ 
+  IDH + ESCOLARIDAD + VIDA + CELULAR + INMIGRANTES +
+  DESERCION +
+  DIOXIDO_log +
+  FAO_log + SUICIDIOMAS_log
+)
+summary(modelo_final_todos_2)
+# R2: 0.9504
+# R2 ajustado: 0.9479
+grafico_todos_2 <- plot(predict(modelo_final_todos_2), PIB_log)
+grafico_todos_2_nolog <-  plot(exp(predict(modelo_final_todos_2)), datos_paises$PIB)
+
+# Se sacan todas las variables con una probabilidad(t-test) > 0.05
+modelo_final_todos_2b <- lm(PIB_log ~ 
+  IDH + ESCOLARIDAD + VIDA + CELULAR + INMIGRANTES +
+  DESERCION +
+  DIOXIDO_log +
+  FAO_log
+)
+summary(modelo_final_todos_2b)
+# R2: 0.9492
+# R2 ajustado: 0.9469
+grafico_todos_2b <- plot(predict(modelo_final_todos_2b), PIB_log)
+grafico_todos_2b_nolog <-  plot(exp(predict(modelo_final_todos_2b)), datos_paises$PIB)
+
+# Se sacan todas las variables con una probabilidad(t-test) > 0.05 y se sacan los logaritmos
+modelo_final_todos_2b2 <- lm(log(PIB) ~ 
+  IDH + ESCOLARIDAD + VIDA + CELULAR + INMIGRANTES +
+  DESERCION +
+  DIOXIDO +
+  FAO,
+  data = datos_paises
+)
+summary(modelo_final_todos_2b2)
+# R2: 0.9445
+# R2 ajustado: 0.9420
+grafico_todos_2b2 <- plot(predict(modelo_final_todos_2b2), PIB_log)
+
+# Se sacan todas las variables con un signo del parámetro calculado contrario a lo esperado
+modelo_final_todos_2c <- lm(PIB_log ~ 
+  IDH + CELULAR + INMIGRANTES +
+  DIOXIDO_log +
+  FAO_log + SUICIDIOMAS_log
+)
+summary(modelo_final_todos_2c)
+# R2: 0.9356
+# R2 ajustado: 0.9335
+grafico_todos_2c <- plot(predict(modelo_final_todos_2c), PIB_log)
+
+# Se sacan todas las variables con una probabilidad(t-test) > 0.1
+modelo_final_todos_2c2 <- lm(PIB_log ~ 
+  IDH + CELULAR + INMIGRANTES +
+  DIOXIDO_log +
+  FAO_log
+)
+summary(modelo_final_todos_2c2)
+# R2: 0.9355
+# R2 ajustado: 0.9337
+grafico_todos_2c2 <- plot(predict(modelo_final_todos_2c2), PIB_log)
+
+# Se sacan todas las variables con una probabilidad(t-test) > 0.01
+modelo_final_todos_3 <- lm(PIB_log ~ 
+  IDH + ESCOLARIDAD + VIDA + CELULAR +
+  DESERCION +
+  DIOXIDO_log +
+  FAO_log
+)
+summary(modelo_final_todos_3)
+# R2: 0.9467
+# R2 ajustado: 0.9446
+grafico_todos_3 <- plot(predict(modelo_final_todos_3), PIB_log)
+grafico_todos_3_nolog <-  plot(exp(predict(modelo_final_todos_3)), datos_paises$PIB)
+
+# Se sacan todas las variables con una probabilidad(t-test) > 0.001
+modelo_final_todos_4 <- lm(PIB_log ~ 
+  IDH + ESCOLARIDAD + VIDA + CELULAR +
+  DIOXIDO_log +
+  FAO_log
+)
+summary(modelo_final_todos_4)
+# R2: 0.9441
+# R2 ajustado: 0.9422
+grafico_todos_4 <- plot(predict(modelo_final_todos_4), PIB_log)
+
+# Se sacan todas las variables con un signo del parámetro calculado contrario a lo esperado
+modelo_final_todos_5 <- lm(PIB_log ~ 
+  IDH + CELULAR +
+  DIOXIDO_log +
+  FAO_log
+)
+summary(modelo_final_todos_5)
+# R2: 0.9301
+# R2 ajustado: 0.9286
+grafico_todos_5 <- plot(predict(modelo_final_todos_5), PIB_log)
+
+# Destilado final
+modelo_final_todos_6 <- lm(PIB_log ~ 
+  IDH +
+  DIOXIDO_log
+)
+summary(modelo_final_todos_6)
+# R2: 0.9182
+# R2 ajustado: 0.9173
+grafico_todos_6 <- plot(predict(modelo_final_todos_6), PIB_log)
+
+
+# Se genera el modelo con las variables mencionadas en la hipótesis
+modelo_final_hipotesis_1 <- lm(PIB_log ~ 
+  IDH + INTERNET + ESCOLARIDAD + ELECTRICIDAD + VIDA +
+  GENERO + DESERCION +
+  DIOXIDO_log +
+  MORTMAT_log + MORTINF_log + FAO_log
+)
+summary(modelo_final_hipotesis_1)
+# R2: 0.9427
+# R2 ajustado: 0.9392
+grafico_hipotesis_1 <- plot(predict(modelo_final_hipotesis_1), PIB_log)
+
+# Se genera el modelo con las variables mencionadas en la hipótesis menos ELECTRICIDAD y DESERCION
+modelo_final_hipotesis_1b <- lm(PIB_log ~ 
+  IDH + INTERNET + ESCOLARIDAD + VIDA +
+  GENERO +
+  DIOXIDO_log +
+  MORTMAT_log + MORTINF_log + FAO_log
+)
+summary(modelo_final_hipotesis_1b)
+# R2: 0.9405
+# R2 ajustado: 0.9375
+grafico_hipotesis_1b <- plot(predict(modelo_final_hipotesis_1b), PIB_log)
+
+# Se sacan todas las variables con una probabilidad(t-test) > 0.05
+modelo_final_hipotesis_2 <- lm(PIB_log ~ 
+  IDH + ESCOLARIDAD + VIDA +
+  DESERCION +
+  DIOXIDO_log +
+  FAO_log
+)
+summary(modelo_final_hipotesis_2)
+# R2: 0.9417
+# R2 ajustado: 0.9398
+grafico_hipotesis_2 <- plot(predict(modelo_final_hipotesis_2), PIB_log)
+
+# Se sacan todas las variables con una probabilidad(t-test) > 0.05 + DESERCION
+modelo_final_hipotesis_2b <- lm(PIB_log ~ 
+  IDH + ESCOLARIDAD + VIDA +
+  DIOXIDO_log +
+  FAO_log
+)
+summary(modelo_final_hipotesis_2b)
+# R2: 0.9395
+# R2 ajustado: 0.9378
+grafico_hipotesis_2b <- plot(predict(modelo_final_hipotesis_2b), PIB_log)
+
+# Se sacan todas las variables con un signo del parámetro calculado contrario a lo esperado
+modelo_final_hipotesis_2c <- lm(PIB_log ~ 
+  IDH +
+  DIOXIDO_log +
+  FAO_log
+)
+summary(modelo_final_hipotesis_2c)
+# R2: 0.9250
+# R2 ajustado: 0.9238
+grafico_hipotesis_2c <- plot(predict(modelo_final_hipotesis_2c), PIB_log)
+
+# Se sacan todas las variables con una probabilidad(t-test) > 0.001
+modelo_final_hipotesis_3 <- lm(PIB_log ~ 
+  IDH + ESCOLARIDAD + VIDA +
+  DIOXIDO_log
+)
+summary(modelo_final_hipotesis_3)
+# R2: 0.9355
+# R2 ajustado: 0.9341
+grafico_hipotesis_3 <- plot(predict(modelo_final_hipotesis_3), PIB_log)
 
