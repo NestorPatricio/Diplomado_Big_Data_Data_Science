@@ -351,15 +351,15 @@ histograma_IDH
 
 candidatos_percentil_IDH <- por_percentil('IDH', FALSE, TRUE)
 histograma_IDH_percentil <- histograma('IDH', datos_paises, candidatos_percentil_IDH, FALSE, 'Outliers por percentiles')
-histograma_IDH_percentil
 
 candidatos_intervalo_IDH <- por_intervalo('IDH', 2, FALSE, TRUE)
 histograma_IDH_intervalo <- histograma('IDH', datos_paises, candidatos_intervalo_IDH, FALSE, 'Outliers por intervalo de variabilidad delta 2')
-histograma_IDH_intervalo
 
 candidatos_valor_z_IDH <- por_z_robusto('IDH', 3, FALSE, TRUE)
 histograma_IDH_valor_z <- histograma('IDH', datos_paises, candidatos_valor_z_IDH, FALSE, 'Outliers por valor-Z robusto delta 3')
-histograma_IDH_valor_z
+
+# Gráficos con datos candidatos a outliers
+histograma_IDH_percentil + histograma_IDH_intervalo + histograma_IDH_valor_z
 
 estadisticos_IDH <- comparacion_estadisticos('IDH', 2, 3, FALSE, TRUE)
 resumen_IDH <- estadisticos_IDH[[1]]
@@ -372,15 +372,15 @@ histograma_DIOXIDO
 
 candidatos_percentil_DIOXIDO <- por_percentil('DIOXIDO', TRUE, TRUE)
 histograma_DIOXIDO_percentil <- histograma('DIOXIDO', datos_paises, candidatos_percentil_DIOXIDO, TRUE, 'Outliers por percentiles')
-histograma_DIOXIDO_percentil
 
 candidatos_intervalo_DIOXIDO <- por_intervalo('DIOXIDO', 2, TRUE, TRUE)
 histograma_DIOXIDO_intervalo <- histograma('DIOXIDO', datos_paises, candidatos_intervalo_DIOXIDO, TRUE, 'Outliers por intervalo de variabilidad delta 2')
-histograma_DIOXIDO_intervalo
 
 candidatos_valor_z_DIOXIDO <- por_z_robusto('DIOXIDO', 3.5, TRUE, TRUE)
 histograma_DIOXIDO_valor_z <- histograma('DIOXIDO', datos_paises, candidatos_valor_z_DIOXIDO, TRUE, 'Outliers por valor-Z robusto delta 3,5')
-histograma_DIOXIDO_valor_z
+
+# Gráficos con datos candidatos a outliers
+histograma_DIOXIDO_percentil + histograma_DIOXIDO_intervalo + histograma_DIOXIDO_valor_z
 
 estadisticos_DIOXIDO <- comparacion_estadisticos('DIOXIDO', 2, 3.5, TRUE, TRUE)
 resumen_DIOXIDO <- estadisticos_DIOXIDO[[1]]
@@ -393,15 +393,15 @@ histograma_INTERNET
 
 candidatos_percentil_INTERNET <- por_percentil('INTERNET', FALSE, TRUE)
 histograma_INTERNET_percentil <- histograma('INTERNET', datos_paises, candidatos_percentil_INTERNET, FALSE, 'Outliers por percentiles')
-histograma_INTERNET_percentil
 
 candidatos_intervalo_INTERNET <- por_intervalo('INTERNET', 1.75, FALSE, TRUE)
 histograma_INTERNET_intervalo <- histograma('INTERNET', datos_paises, candidatos_intervalo_INTERNET, FALSE, 'Outliers por intervalo de variabilidad delta 1,75')
-histograma_INTERNET_intervalo
 
 candidatos_valor_z_INTERNET <- por_z_robusto('INTERNET', 2, FALSE, TRUE)
 histograma_INTERNET_valor_z <- histograma('INTERNET', datos_paises, candidatos_valor_z_INTERNET, FALSE, 'Outliers por valor-Z robusto delta 2')
-histograma_INTERNET_valor_z
+
+# Gráficos con datos candidatos a outliers
+histograma_INTERNET_percentil + histograma_INTERNET_intervalo + histograma_INTERNET_valor_z
 
 estadisticos_INTERNET <- comparacion_estadisticos('INTERNET', 1.75, 2, FALSE, TRUE)
 resumen_INTERNET <- estadisticos_INTERNET[[1]]
@@ -414,15 +414,15 @@ histograma_MORTMAT
 
 candidatos_percentil_MORTMAT <- por_percentil('MORTMAT', TRUE, TRUE)
 histograma_MORTMAT_percentil <- histograma('MORTMAT', datos_paises, candidatos_percentil_MORTMAT, TRUE, 'Outliers por percentiles')
-histograma_MORTMAT_percentil
 
 candidatos_intervalo_MORTMAT <- por_intervalo('MORTMAT', 2, TRUE, TRUE)
 histograma_MORTMAT_intervalo <- histograma('MORTMAT', datos_paises, candidatos_intervalo_MORTMAT, TRUE, 'Outliers por intervalo de variabilidad delta 2')
-histograma_MORTMAT_intervalo
 
 candidatos_valor_z_MORTMAT <- por_z_robusto('MORTMAT', 2, TRUE, TRUE)
 histograma_MORTMAT_valor_z <- histograma('MORTMAT', datos_paises, candidatos_valor_z_MORTMAT, TRUE, 'Outliers por valor-Z robusto delta 2')
-histograma_MORTMAT_valor_z
+
+# Gráficos con datos candidatos a outliers
+histograma_MORTMAT_percentil + histograma_MORTMAT_intervalo + histograma_MORTMAT_valor_z
 
 estadisticos_MORTMAT <- comparacion_estadisticos('MORTMAT', 2, 2, TRUE, TRUE)
 resumen_MORTMAT <- estadisticos_MORTMAT[[1]]
@@ -562,6 +562,7 @@ datos_paises_nuevo <- data.frame(
   DIOXIDO_log, PRISION_log,
   MORTMAT_log, MORTINF_log, FAO_log, GINI_log, IPC_log, SUICIDIOMAS_log, POB_log
 )
+correlacion_datos_nuevos <- cor(datos_paises_nuevo)
 
 # Revisión de las variables que fueron mencionadas en la hipótesis
 datos_hipotesis_df <- data.frame(
@@ -571,7 +572,6 @@ datos_hipotesis_df <- data.frame(
 
 correlaciones_hipotesis <- cor(datos_hipotesis_df)
 graficos_hipotesis <- pairs(datos_hipotesis_df)
-graficos_hipotesis
 
 
 # Se genera el modelo con todas las variables
@@ -585,6 +585,7 @@ summary(modelo_final_todos_1)
 # R2: 0.953
 # R2 ajustado: 0.9447
 grafico_todos_1 <- plot(predict(modelo_final_todos_1), PIB_log)
+cor(predict(modelo_final_todos_1), PIB_log)
 
 # Se sacan todas las variables con una probabilidad(t-test) > 0.1
 modelo_final_todos_2 <- lm(PIB_log ~ 
@@ -704,6 +705,7 @@ summary(modelo_final_hipotesis_1)
 # R2: 0.9427
 # R2 ajustado: 0.9392
 grafico_hipotesis_1 <- plot(predict(modelo_final_hipotesis_1), PIB_log)
+cor(predict(modelo_final_hipotesis_1), PIB_log)
 
 # Se genera el modelo con las variables mencionadas en la hipótesis menos ELECTRICIDAD y DESERCION
 modelo_final_hipotesis_1b <- lm(PIB_log ~ 
@@ -761,3 +763,57 @@ summary(modelo_final_hipotesis_3)
 # R2 ajustado: 0.9341
 grafico_hipotesis_3 <- plot(predict(modelo_final_hipotesis_3), PIB_log)
 
+
+# Se genera el modelo con todas las variables pero con PIB sin logaritmo
+modelo_final_todos_sin_log_1 <- lm(PIB ~ 
+  IDH + INTERNET + ESCOLARIDAD + ELECTRICIDAD + VIDA + CELULAR + INMIGRANTES + FOSIL + TURISMO + PARLAMENTO + BOSQUE +
+  GENERO + DESERCION + RENOVABLE + VIOLENCIA + SUICIDIOFEM + HOMICIDIO + AFECTADOS + DESASTRE +
+  DIOXIDO + PRISION +
+  MORTMAT + MORTINF + FAO + GINI + IPC + SUICIDIOMAS + POB,
+  data = datos_paises
+)
+summary(modelo_final_todos_sin_log_1)
+# R2: 0.8880
+# R2 ajustado: 0.8683
+grafico_todos_sin_log_1 <- plot(predict(modelo_final_todos_sin_log_1), datos_paises$PIB)
+cor(predict(modelo_final_todos_sin_log_1), datos_paises$PIB)
+
+# Se sacan todas las variables con una probabilidad(t-test) > 0.1
+modelo_final_todos_sin_log_2 <- lm(PIB ~ 
+  IDH + ESCOLARIDAD + ELECTRICIDAD + VIDA + INMIGRANTES +
+  RENOVABLE +
+  DIOXIDO + PRISION +
+  MORTINF + FAO,
+  data = datos_paises
+)
+summary(modelo_final_todos_sin_log_2)
+# R2: 0.8806 
+# R2 ajustado: 0.8738
+grafico_todos_sin_log_2 <- plot(predict(modelo_final_todos_sin_log_2), datos_paises$PIB)
+cor(predict(modelo_final_todos_sin_log_2), datos_paises$PIB)
+
+# Se sacan todas las variables con una probabilidad(t-test) > 0.05
+modelo_final_todos_sin_log_3 <- lm(PIB ~ 
+  IDH + ELECTRICIDAD + VIDA + INMIGRANTES +
+  RENOVABLE +
+  DIOXIDO + PRISION +
+  MORTINF + FAO,
+  data = datos_paises
+)
+summary(modelo_final_todos_sin_log_3)
+# R2: 0.8785 
+# R2 ajustado: 0.8724
+grafico_todos_sin_log_3 <- plot(predict(modelo_final_todos_sin_log_3), datos_paises$PIB)
+cor(predict(modelo_final_todos_sin_log_3), datos_paises$PIB)
+
+# Se sacan todas las variables con una probabilidad(t-test) > 0.01
+modelo_final_todos_sin_log_4 <- lm(PIB ~ 
+  IDH + VIDA + INMIGRANTES +
+  DIOXIDO +
+  MORTINF + FAO,
+  data = datos_paises
+)
+summary(modelo_final_todos_sin_log_4)
+# R2: 0.8621
+# R2 ajustado: 0.8575
+grafico_todos_sin_log_4 <- plot(predict(modelo_final_todos_sin_log_4), datos_paises$PIB)
