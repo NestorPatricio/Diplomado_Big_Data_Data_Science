@@ -600,6 +600,8 @@ summary(modelo_final_todos_2)
 grafico_todos_2 <- plot(predict(modelo_final_todos_2), PIB_log)
 grafico_todos_2_nolog <-  plot(exp(predict(modelo_final_todos_2)), datos_paises$PIB)
 
+
+############################## Modelo escogido ##############################
 # Se sacan todas las variables con una probabilidad(t-test) > 0.05
 modelo_final_todos_2b <- lm(PIB_log ~ 
   IDH + ESCOLARIDAD + VIDA + CELULAR + INMIGRANTES +
@@ -610,8 +612,64 @@ modelo_final_todos_2b <- lm(PIB_log ~
 summary(modelo_final_todos_2b)
 # R2: 0.9492
 # R2 ajustado: 0.9469
-grafico_todos_2b <- plot(predict(modelo_final_todos_2b), PIB_log)
-grafico_todos_2b_nolog <-  plot(exp(predict(modelo_final_todos_2b)), datos_paises$PIB)
+valores_predichos <- predict(modelo_final_todos_2b)
+valores_predichos_exp <- exp(predict(modelo_final_todos_2b))
+dataframe_comparacion_resultados <- data.frame(
+  valores_predichos = valores_predichos,
+  valores_predichos_exp = valores_predichos_exp,
+  PIB_log = PIB_log,
+  PIB = datos_paises$PIB
+)
+
+cor(valores_predichos_exp, datos_paises$PIB)
+cor(valores_predichos, PIB_log)
+
+grafico_todos_2b <- dataframe_comparacion_resultados %>% 
+  ggplot(
+    aes(x = valores_predichos, y = PIB_log)
+  ) +
+  geom_smooth(
+    method = 'lm',
+    colour = 'cyan4',
+    se = FALSE
+  ) +
+  geom_point(
+    colour = 'red',
+    alpha = 0.4
+  ) +
+  theme_bw() +
+  labs(
+    x = 'Valores predichos del modelo',
+    y = 'Logaritmo de los valores observados del PIB',
+    title = 'Logaritmo del PIB vs predicción del modelo',
+    caption = 'Correlación = 0,9742693'
+  )
+
+grafico_todos_2b_nolog <- dataframe_comparacion_resultados %>% 
+  ggplot(
+    aes(x = valores_predichos_exp, y = PIB)
+  ) +
+  geom_smooth(
+    method = 'lm',
+    colour = 'green4',
+    se = FALSE
+  ) +
+  geom_point(
+    colour = 'hotpink',
+    alpha = 0.4
+  ) +
+  theme_bw() +
+  labs(
+    x = 'Exponencial de los valores predichos del modelo',
+    y = 'Valores observados del PIB',
+    title = 'PIB vs la esponencial de la predicción del modelo',
+    caption = 'Correlación = 0,9455411'
+  )
+
+# Visualización de los gráficos del modelo
+grafico_todos_2b + grafico_todos_2b_nolog
+############################## Modelo escogido ##############################
+
 
 # Se sacan todas las variables con una probabilidad(t-test) > 0.05 y se sacan los logaritmos
 modelo_final_todos_2b2 <- lm(log(PIB) ~ 
