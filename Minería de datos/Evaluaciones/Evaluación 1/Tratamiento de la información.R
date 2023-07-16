@@ -239,11 +239,15 @@ comparacion_estadisticos <- function(
     cor_percentil = cor(percentiles[, nombre_variable], log(percentiles[, 'PIB']))
     cor_intervalo = cor(intervalo[, nombre_variable], log(intervalo[, 'PIB']))
     cor_z = cor(valor_z[, nombre_variable], log(valor_z[, 'PIB']))
+    nombre_correlacion = 'Correlación_con_log_PIB'
+    numero_grafico = 2
   } else {
     correlacion = cor(dataframe[, nombre_variable], dataframe[, 'PIB'])
     cor_percentil = cor(percentiles[, nombre_variable], percentiles[, 'PIB'])
     cor_intervalo = cor(intervalo[, nombre_variable], intervalo[, 'PIB'])
     cor_z = cor(valor_z[, nombre_variable], valor_z[, 'PIB'])
+    nombre_correlacion = 'Correlación_con_PIB'
+    numero_grafico = 1
   }
   resumen_df <- data.frame(
     'Grupo' = c(
@@ -263,20 +267,16 @@ comparacion_estadisticos <- function(
       sd(percentiles[, nombre_variable], na.rm = TRUE),
       sd(intervalo[, nombre_variable], na.rm = TRUE),
       sd(valor_z[, nombre_variable], na.rm = TRUE)
-    ),
-    'Correlación_con_PIB' = c(
-      correlacion,
-      cor_percentil,
-      cor_intervalo,
-      cor_z
     )
   )
+    
+  resumen_df[nombre_correlacion] = c(
+    correlacion,
+    cor_percentil,
+    cor_intervalo,
+    cor_z
+  )
   
-  if(log_PIB){
-    numero_grafico = 2
-  } else {
-    numero_grafico = 1
-  }
   dataframe_graf <- graficos_PIB(dataframe, nombre_variable, FALSE, 'Datos originales', 'blue')[[numero_grafico]]
   percentiles_graf <- graficos_PIB(percentiles, nombre_variable, FALSE, 'Percentiles 1% y 99%', 'red')[[numero_grafico]]
   intervalo_graf <- graficos_PIB(intervalo, nombre_variable, FALSE, 'Intervalo de variabilidad', 'darkgreen')[[numero_grafico]]
@@ -363,7 +363,6 @@ histograma_IDH_percentil + histograma_IDH_intervalo + histograma_IDH_valor_z
 
 estadisticos_IDH <- comparacion_estadisticos('IDH', 2, 3, FALSE, TRUE)
 resumen_IDH <- estadisticos_IDH[[1]]
-resumen_IDH
 
 
 # Logaritmo de DIOXIDO
@@ -384,7 +383,6 @@ histograma_DIOXIDO_percentil + histograma_DIOXIDO_intervalo + histograma_DIOXIDO
 
 estadisticos_DIOXIDO <- comparacion_estadisticos('DIOXIDO', 2, 3.5, TRUE, TRUE)
 resumen_DIOXIDO <- estadisticos_DIOXIDO[[1]]
-resumen_DIOXIDO
 
 
 # INTERNET
@@ -405,7 +403,6 @@ histograma_INTERNET_percentil + histograma_INTERNET_intervalo + histograma_INTER
 
 estadisticos_INTERNET <- comparacion_estadisticos('INTERNET', 1.75, 2, FALSE, TRUE)
 resumen_INTERNET <- estadisticos_INTERNET[[1]]
-resumen_INTERNET
 
 
 # Logaritmo de MORTMAT
@@ -426,7 +423,6 @@ histograma_MORTMAT_percentil + histograma_MORTMAT_intervalo + histograma_MORTMAT
 
 estadisticos_MORTMAT <- comparacion_estadisticos('MORTMAT', 2, 2, TRUE, TRUE)
 resumen_MORTMAT <- estadisticos_MORTMAT[[1]]
-resumen_MORTMAT
 
 
 ############################## Pregunta 2 ##############################
@@ -643,6 +639,11 @@ grafico_todos_2b <- dataframe_comparacion_resultados %>%
     y = 'Logaritmo de los valores observados del PIB',
     title = 'Logaritmo del PIB vs predicción del modelo',
     caption = 'Correlación = 0,9742693'
+  ) +
+  theme(
+    title = element_text(size = 16),
+    axis.title = element_text(size = 14),
+    plot.caption = element_text(size = 16)
   )
 
 grafico_todos_2b_nolog <- dataframe_comparacion_resultados %>% 
@@ -662,8 +663,13 @@ grafico_todos_2b_nolog <- dataframe_comparacion_resultados %>%
   labs(
     x = 'Exponencial de los valores predichos del modelo',
     y = 'Valores observados del PIB',
-    title = 'PIB vs la esponencial de la predicción del modelo',
+    title = 'PIB vs la exponencial de la predicción del modelo',
     caption = 'Correlación = 0,9455411'
+  ) +
+  theme(
+    title = element_text(size = 16),
+    axis.title = element_text(size = 14),
+    plot.caption = element_text(size = 16)
   )
 
 # Visualización de los gráficos del modelo
