@@ -1,0 +1,11 @@
+Clima;Temperatura;Humedad;Viento;Jugar;Jugadores
+Soleado;Calor;Alta;Debil;No;25
+Nublado;Calor;Alta;Debil;Si;46
+Soleado;Agradable;Normal;Fuerte;Si;48
+Nublado;Agradable;Alta;Fuerte;Si;52
+Lluvioso;Agradable;Alta;Fuerte;No;25
+Lluvioso;Frio;Normal;Fuerte;No;23
+Lluvioso;Agradable;Alta;Debil;Si;45
+Soleado;Calor;Alta;Fuerte;No;30
+Nublado;Calor;Normal;Debil;Si;44
+Lluvioso;Agradable;Alta;Fuerte;No;30
