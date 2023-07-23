@@ -92,7 +92,7 @@ rpart.plot(modelo3)
 
 # Opciones adicionales para la representacion visual del arbol (rpart.plot):
 # 0 - Sin información adicional
-# 1 - Mostrar cantidad de observaciones por nodo
+# 1 - Mostrar cantidad de observaciones para cada uno de los valores de la variable a evaluar por nodo
 # 2 - Tasa de clasificación del nodo (correctos/total)
 # 3 - Tasa de error de clasificación del nodo (incorrectos/total)
 # 4 - Probabilidad de clasificación del nodo, condicionada al nodo
@@ -104,6 +104,8 @@ rpart.plot(modelo3)
 # 10 - Igual que 9, pero con la probababilidad de la segunda clase
 # 11 - Igual que 10, pero sin mostrar la clase ajustada
 # +100 - Muestra el porcentaje de observaviones del nodo
+# Por defecto muestra extra = 106
+
 
 rpart.plot(modelo3, extra = 6)
 
