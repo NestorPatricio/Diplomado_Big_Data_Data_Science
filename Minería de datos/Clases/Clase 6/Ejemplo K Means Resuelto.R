@@ -53,7 +53,6 @@ for (k in 1:10) {
     nstart = 25
   )$tot.withinss
 }
-
 plot(clusters, codo, type = "l")
 
 
