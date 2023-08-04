@@ -83,8 +83,8 @@ modelo_k5 <- knn(
 
 
 # Matriz de confusion
-table(label_test, modelo_k3)
-table(label_test, modelo_k5)
+table(modelo_k3, label_test)
+table(modelo_k5, label_test)
 
 # Accuracy
 sum(label_test == modelo_k3)/length(label_test)
