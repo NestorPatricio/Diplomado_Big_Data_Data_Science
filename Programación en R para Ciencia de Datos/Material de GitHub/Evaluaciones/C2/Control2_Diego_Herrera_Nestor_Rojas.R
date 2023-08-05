@@ -6,12 +6,14 @@
 # SECCIÓN 1
 # Carga de archivos:
 general <- read.csv(paste0(
-  'https://raw.githubusercontent.com/majorquev/DBDC_202304_Programacion_en_R_',
-  'para_ciencia_de_datos/main/Evaluaciones/C2/datasets/generalinfo.csv'
+  '/home/nestorprr/Documentos/Diplomado_Big_Data_Data_Science/Programación en ',
+  'R para Ciencia de Datos/Material de GitHub/Evaluaciones/C2/datasets/',
+  'generalinfo.csv'
   ))
 location <- read.csv(paste0(
-  'https://raw.githubusercontent.com/majorquev/DBDC_202304_Programacion_en_R_',
-  'para_ciencia_de_datos/main/Evaluaciones/C2/datasets/location.csv'
+  '/home/nestorprr/Documentos/Diplomado_Big_Data_Data_Science/Programación en ',
+  'R para Ciencia de Datos/Material de GitHub/Evaluaciones/C2/datasets/',
+  'location.csv'
   ))
 
 # Importación de librerías:
