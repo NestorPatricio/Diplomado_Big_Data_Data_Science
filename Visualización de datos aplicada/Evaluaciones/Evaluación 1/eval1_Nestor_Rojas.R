@@ -11,9 +11,9 @@ librerias <- c(
   "ggplot2",
   "tibble",
   "lintr",
-  "patchwork",
   "datos",
-  "viridis"
+  "viridis",
+  "showtext"
 )
 for (libreria in librerias) {
   if (!require(libreria, character.only = TRUE)) {
@@ -58,7 +58,9 @@ grafico_1_1 <- graficos_1 + geom_line() + labs(title = "Con geom_line()")
 grafico_1_2 <- graficos_1 + geom_path() + labs(title = "Con geom_path()")
 grafico_1_3 <- graficos_1 + geom_polygon() + labs(title = "Con geom_polygon()")
 
-grafico_1_1 + grafico_1_2 + grafico_1_3
+grafico_1_1
+grafico_1_2
+grafico_1_3
 
 # Describa qué hace geom_path() a diferencia de geom_line().
 print(paste(
@@ -86,7 +88,9 @@ grafico_2_1 <- graficos_2 + geom_line() + labs(title = "Con geom_line()")
 grafico_2_2 <- graficos_2 + geom_path() + labs(title = "Con geom_path()")
 grafico_2_3 <- graficos_2 + geom_polygon() + labs(title = "Con geom_polygon()")
 
-grafico_2_1 + grafico_2_2 + grafico_2_3
+grafico_2_1
+grafico_2_2
+grafico_2_3
 
 # Menciona los cambios obtenidos respecto a los resultados del Ítem 1.
 print(paste(
@@ -173,7 +177,7 @@ print(paste(
 #los atributos (variables) usados
 #las marcas
 #los canales
-#qué información se codifica
+#Qué información se codifica
 #Cómo se codifica la información
 # ¿De qué forma se puede mejorar el gráfico de la izquierda (territorio)?
 # https://www.core77.com/posts/90771/A-Great-Example-of-Better-Data-Visualization-This-Voting-Map-GIF
@@ -184,7 +188,6 @@ print(paste(
 
 # Ítem 6 ------------------------------------------------------------------
 
-colores <- c("#0015BC", "#DE0100")
 presidencial_arreglado <- presidencial %>%
   mutate(
     anos_ejercicio = as.double(fin - inicio) / 365.25,
@@ -197,70 +200,61 @@ presidencial_arreglado <- presidencial %>%
 presidencial_arreglado[8, "nombre"] <- "G.H.W. Bush"
 presidencial_arreglado[10, "nombre"] <- "G.W. Bush"
 
+colores <- c("#0015BC", "#DE0100")
+font_add_google(
+  name = "Playfair Display",
+  family = "playdis"
+)
+showtext_auto()
+
+barplot(presidencial_arreglado$anos_ejercicio, main = "Años de ejercicio")
+
 grafico_presidentes <- ggplot(
   data = presidencial_arreglado,
   mapping = aes(
     y = reorder(nombre, inicio),
     x = anos_ejercicio,
-    fill = partido,
+    fill = paste("Partido", partido),
     label = nombre
   )
 ) +
   geom_col() +
   scale_fill_manual(values = colores) +
-  scale_x_continuous(breaks = seq(-8, 8, by = 2)) +
+  scale_x_continuous(
+    breaks = seq(-8, 8, by = 4),
+    labels = abs(seq(-8, 8, by = 4))
+  ) +
   theme_minimal() +
   theme(
     plot.title = element_text(hjust = 0.5),
     plot.subtitle = element_text(hjust = 0.5),
     panel.grid.minor.x = element_blank(),
-    legend.position = "none"
+    axis.title.x = element_blank(),
+    legend.position = "bottom"
   ) +
   labs(
-    title = "Años de ejercicio por presidente",
-    subtitle = "Desde 1953 hasta 2021",
-    x = "Años de ejercicio",
+    title = "Años de gobierno por presidente",
+    subtitle = "Estados Unidos entre 1953 y 2021",
     y = element_blank(),
-    fill = "Partido"
+    fill = element_blank()
   )
+grafico_presidentes
 
-partidos <- presidencial_arreglado %>%
-  mutate(anos_ejercicio = abs(anos_ejercicio)) %>%
-  group_by(partido) %>%
-  summarise(anos_ejercicio = sum(anos_ejercicio))
-
-grafico_partidos <- ggplot(
-  data = partidos,
-  mapping = aes(x = "", y = anos_ejercicio, fill = partido)
-) +
-  geom_bar(width = 1, stat = "identity", colour = "#FFFFFF") +
-  coord_polar(theta = "y") +
-  scale_fill_manual(values = colores) +
-  theme_minimal() +
-  theme(
-    plot.title = element_text(hjust = 0.5),
-    plot.subtitle = element_text(hjust = 0.5),
-    axis.text = element_blank(),
-    line = element_blank(),
-    legend.position = c(0.5, 0),
-    legend.direction = "horizontal"
-  ) +
-  labs(
-    title = "Proporción de tiempo de presidencia por partido",
-    subtitle = "Desde 1953 hasta 2021",
-    x = element_blank(),
-    y = element_blank(),
-    fill = "Partidos"
-  )
-
-grafico_presidentes + grafico_partidos
-
-# Explique el WHAT, HOW and WHY.
-print(paste(
-  ""
+# Explique el qué, el porqué y el cómo.
+print(cat(
+  "En este gráfico se busca presentar información proveniente de un conjunto",
+  " de datos tabulados: el tiempo de ejercicio de todos los presidentes de ",
+  "Estados Unidos entre los años 1953 y 2021.\n",
+  "La intención detrás del gráfico es realizar una consulta de comparación ",
+  "entre los distintos períodos presidenciales, poniendo especial énfasis en ",
+  "el partido político al cual pertenece cada uno para hacerse una idea sobre ",
+  "quienes, Demócratas o Republicanos, han estado más tiempo en el poder ",
+  "ejecutivo\n",
+  "El cómo.",
+  sep = ""
 ))
 
-# Qué es lo que está codificando en términos de marcas y canales.
+  # Qué es lo que está codificando en términos de marcas y canales.
 print(paste(
   ""
 ))
