@@ -6,7 +6,15 @@
 # Prolegómenos ------------------------------------------------------------
 
 # Carga de librerías
-librerias <- c("tidyverse", "lintr", "patchwork", "datos", "mapproj", "viridis", "lubridate")
+librerias <- c(
+  "dplyr",
+  "ggplot2",
+  "tibble",
+  "lintr",
+  "patchwork",
+  "datos",
+  "viridis"
+)
 for (libreria in librerias) {
   if (!require(libreria, character.only = TRUE)) {
     install.packages(libreria)
@@ -14,7 +22,7 @@ for (libreria in librerias) {
   }
 }
 
-# Se configura el directori de trabajo
+# Se configura el directorio de trabajo
 setwd(paste0(
   "/home/nestorprr/Documentos/Diplomado_Big_Data_Data_Science/Visualización de",
   " datos aplicada/Evaluaciones/Evaluación 1/"
@@ -45,33 +53,63 @@ topdestinos <- vuelos %>%
 
 # Ítem 1 ------------------------------------------------------------------
 
-graficos_1 <- ggplot(data = df, aes(x = x, y = y))
-grafico_1_1 <- graficos_1 + geom_line()
-grafico_1_2 <- graficos_1 + geom_path()
-grafico_1_3 <- graficos_1 + geom_polygon()
+graficos_1 <- ggplot(data = df, mapping = aes(x = x, y = y))
+grafico_1_1 <- graficos_1 + geom_line() + labs(title = "Con geom_line()")
+grafico_1_2 <- graficos_1 + geom_path() + labs(title = "Con geom_path()")
+grafico_1_3 <- graficos_1 + geom_polygon() + labs(title = "Con geom_polygon()")
 
 grafico_1_1 + grafico_1_2 + grafico_1_3
 
 # Describa qué hace geom_path() a diferencia de geom_line().
-# Mencione qué hace geom_path() a diferencia de geom_line().
-print(paste0(
-  ""
+print(paste(
+  "Tanto geom_path() como geom_line() son funciones que grafican una línea que",
+  "pasa por todos los puntos de un conjunto de datos (dataframe, tibble,",
+  "matriz, etc). La diferencia radica en que geom_line(), como si fuese una",
+  "función, sigue el orden de uno de los ejes, generalmente el eje X; en",
+  "cambio, geom_path() sigue el orden en el cual los datos aparecen en el set",
+  "de datos."
+))
+
+# Qué hace geom_polygon() a diferencia de geom_path().
+print(paste(
+  "Por otra parte, geom_polygon() sigue todos los puntos del set de datos de",
+  "igual forma que geom_path(), pero agrega el relleno dentro del polígono",
+  "que se genera, con lo que podemos graficar una figura geométrica que ayuda",
+  "a visualizar mejor los datos que poseen un componente espacial."
 ))
 
 
 # Ítem 2 ------------------------------------------------------------------
 
-graficos_2 <- ggplot(data = df, aes(x = x, y = y, group = v))
-grafico_2_1 <- graficos_2 + geom_line()
-grafico_2_2 <- graficos_2 + geom_path()
-grafico_2_3 <- graficos_2 + geom_polygon()
+graficos_2 <- ggplot(data = df, mapping = aes(x = x, y = y, group = v))
+grafico_2_1 <- graficos_2 + geom_line() + labs(title = "Con geom_line()")
+grafico_2_2 <- graficos_2 + geom_path() + labs(title = "Con geom_path()")
+grafico_2_3 <- graficos_2 + geom_polygon() + labs(title = "Con geom_polygon()")
 
 grafico_2_1 + grafico_2_2 + grafico_2_3
 
-# Menciona los cambios obtenidos respecto a los resultados anteriormente obtenidos.
-# ¿Cuál sería un tipo de datos donde geom_path() sea la función a utilizar sobre geom_line()?
-print(paste0(
-  ""
+# Menciona los cambios obtenidos respecto a los resultados del Ítem 1.
+print(paste(
+  "El argumento group dentro de la función aes() permite hacer grupos de datos",
+  "independientes en su trato, por lo que se generarán tantos gráficos como",
+  "fatores existan en el atributo o variable que se establezca para group,",
+  "siempre en la misma área de trabajo, en la misma trama (a diferencia de las",
+  "facetas que generan cada una su propia trama para cada valor categórico).",
+  "En este ítem la variable v tiene 2 valores distintos, por lo tanto los",
+  "datos son agrupados en 2 conjuntos independientes, obviando la conexión",
+  "entre los puntos que hacen el salto de una categorìa a otra."
+))
+
+# ¿Cuál sería un tipo de datos donde geom_path() sea la función a utilizar sobre
+#geom_line()?
+print(paste(
+  "Los datos en los cuales usar la función geom_path() es más provechoso es en",
+  "aquellos en que la información espacial es relevante, pues puede llevar a",
+  "una representación en dos dimensiones que sea más explicativa que un trazo",
+  "unidmensional. Por esto geom_path() es la función perfecta si es que",
+  "queremos dibujar, por ejemplo, una capa de mapas de un territorio o una",
+  "representación anatómica sobre la cual queramos destacar algunos puntos con",
+  "alguna información relevante."
 ))
 
 
@@ -84,9 +122,11 @@ grafico_3 <- ggplot(estados) +
     fill = "gray90"
   ) +
   labs(
+    title = "Los 20 aeropuertos con más vuelos arribados en Estados Unidos",
     x = "Longitud Oeste",
     y = "Latitud Norte"
   ) +
+  theme(plot.title = element_text(hjust = 0.5)) +
   theme_minimal()
 grafico_3
 
@@ -96,20 +136,34 @@ grafico_3
 grafico_4 <- grafico_3 +
   geom_point(
     data = topdestinos,
-    mapping = aes(x = longitud, y = latitud,  color = n),
-    alpha = 0.7,
-    size = 2
+    mapping = aes(x = longitud, y = latitud, size = n, color = n),
+    alpha = 0.5
   ) +
   scale_color_viridis() +
-  labs(
-    color = "Cantidad de\nvuelos arribados"
-  ) + coord_map()
+  labs(color = "Cantidad de\nvuelos arribados") +
+  guides(size = "none") +
+  coord_map(projection = "azequalarea")
 grafico_4
 
-# Argumente la elección del tipo de canal que ha utilizado para representar la cantidad de vuelos.
-# Revise por qué es relevante el uso de coord_map() y comente lo obtenido en el gráfico.
-print(paste0(
+# Argumente la elección del tipo de canal que ha utilizado para representar la
+#cantidad de vuelos.
+print(paste(
   ""
+))
+
+# Revise por qué es relevante el uso de coord_map() y comente lo obtenido.
+print(paste(
+  "La función coord_map() permite generar representaciones de la superficie",
+  "terrestre, o de regiones de esta, de acuerdo a algunas de las proyecciones",
+  "más populares de la cartografía (como la proyección de Mercator, la cual",
+  "usa por defecto). Esto permite que las representaciones gráficas de",
+  "territorios que podamos generar mediante ggplot2 puedan tener la proporción",
+  "correspondiente a la proyección especificada. En este ejercicio usé la ",
+  "proyección 'azequalarea' pues prefiero una proyección que sea más fiel a la",
+  "real dimensión del territorio; acá las líneas de los meridianos tienden a",
+  "conlfuir hacia el polo más cercano, el polo norte en este caso, con el",
+  "consecuente estrechamiento del mapa arriba y la transformación de las",
+  "líneas rectas de los paralelos en líneas curvas paralelas."
 ))
 
 
@@ -123,7 +177,7 @@ print(paste0(
 #Cómo se codifica la información
 # ¿De qué forma se puede mejorar el gráfico de la izquierda (territorio)?
 # https://www.core77.com/posts/90771/A-Great-Example-of-Better-Data-Visualization-This-Voting-Map-GIF
-print(paste0(
+print(paste(
   ""
 ))
 
@@ -134,7 +188,11 @@ colores <- c("#0015BC", "#DE0100")
 presidencial_arreglado <- presidencial %>%
   mutate(
     anos_ejercicio = as.double(fin - inicio) / 365.25,
-    anos_ejercicio = ifelse(partido == "Demócrata", anos_ejercicio * - 1, anos_ejercicio)
+    anos_ejercicio = ifelse(
+      partido == "Demócrata",
+      anos_ejercicio * -1,
+      anos_ejercicio
+    )
   )
 presidencial_arreglado[8, "nombre"] <- "G.H.W. Bush"
 presidencial_arreglado[10, "nombre"] <- "G.W. Bush"
@@ -150,51 +208,59 @@ grafico_presidentes <- ggplot(
 ) +
   geom_col() +
   scale_fill_manual(values = colores) +
-  scale_x_continuous(breaks = seq(-9, 9, by = 1)) +
-  geom_label(
-    color = '#000000',
-    fill = '#FFFFFF'
-  ) +
+  scale_x_continuous(breaks = seq(-8, 8, by = 2)) +
   theme_minimal() +
   theme(
-    axis.text.y = element_blank(),
-    #line = element_blank(),
+    plot.title = element_text(hjust = 0.5),
+    plot.subtitle = element_text(hjust = 0.5),
+    panel.grid.minor.x = element_blank(),
     legend.position = "none"
   ) +
   labs(
+    title = "Años de ejercicio por presidente",
+    subtitle = "Desde 1953 hasta 2021",
     x = "Años de ejercicio",
     y = element_blank(),
     fill = "Partido"
   )
-grafico_presidentes
 
 partidos <- presidencial_arreglado %>%
+  mutate(anos_ejercicio = abs(anos_ejercicio)) %>%
   group_by(partido) %>%
-  summarise(anos_ejercicio = sum(anos_ejercicio)) %>%
-  mutate(anos_ejercicio = abs(anos_ejercicio))
+  summarise(anos_ejercicio = sum(anos_ejercicio))
 
 grafico_partidos <- ggplot(
   data = partidos,
   mapping = aes(x = "", y = anos_ejercicio, fill = partido)
 ) +
-  geom_bar(stat = "identity", width = 1, colour = "#FFFFFF") +
-  coord_polar(theta = "y", start = 0) +
+  geom_bar(width = 1, stat = "identity", colour = "#FFFFFF") +
+  coord_polar(theta = "y") +
   scale_fill_manual(values = colores) +
   theme_minimal() +
   theme(
+    plot.title = element_text(hjust = 0.5),
+    plot.subtitle = element_text(hjust = 0.5),
     axis.text = element_blank(),
-    line = element_blank()
+    line = element_blank(),
+    legend.position = c(0.5, 0),
+    legend.direction = "horizontal"
   ) +
   labs(
+    title = "Proporción de tiempo de presidencia por partido",
+    subtitle = "Desde 1953 hasta 2021",
     x = element_blank(),
     y = element_blank(),
-    fill = "Partido"
+    fill = "Partidos"
   )
 
 grafico_presidentes + grafico_partidos
 
 # Explique el WHAT, HOW and WHY.
+print(paste(
+  ""
+))
+
 # Qué es lo que está codificando en términos de marcas y canales.
-print(paste0(
+print(paste(
   ""
 ))
