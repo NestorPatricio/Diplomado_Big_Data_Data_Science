@@ -23,10 +23,18 @@ for (libreria in librerias) {
 }
 
 # Se configura el directorio de trabajo
-setwd(paste0(
-  "/home/nestorprr/Documentos/Diplomado_Big_Data_Data_Science/Visualización de",
-  " datos aplicada/Evaluaciones/Evaluación 1/"
-))
+sistema_operativo <- Sys.info()["sysname"]
+if (sistema_operativo == "Windows") {
+  setwd(paste0(
+    "C:\\Users\\nproj\\Documents\\Diplomado_Big_Data_Data_Science\\",
+    "Visualización de datos aplicada\\Evaluaciones\\Evaluación 1"
+  ))
+} else if (sistema_operativo == "Linux") {
+  setwd(paste0(
+    "/home/nestorprr/Documentos/Diplomado_Big_Data_Data_Science/Visualización ",
+    "de datos aplicada/Evaluaciones/Evaluación 1/"
+  ))
+}
 
 # Se ejecuta el linter para evaluar el estilo del script
 lint("eval1_Nestor_Rojas.R")
@@ -188,27 +196,26 @@ print(paste(
 
 # Ítem 6 ------------------------------------------------------------------
 
+# Se definen algunos estilos previos
+colores <- c("Partido Demócrata" = "#0015BC", "Partido Republicano" = "#DE0100")
+font_add_google(name = "Playfair Display", family = "playdis")
+font_add_google(name = "Barlow", family = "barlow")
+showtext_auto()
+
+# Se modican los datos para el gráfico
 presidencial_arreglado <- presidencial %>%
   mutate(
     anos_ejercicio = as.double(fin - inicio) / 365.25,
     anos_ejercicio = ifelse(
-      partido == "Demócrata",
-      anos_ejercicio * -1,
-      anos_ejercicio
+      test = partido == "Demócrata",
+      yes = anos_ejercicio * -1,
+      no = anos_ejercicio
     )
   )
 presidencial_arreglado[8, "nombre"] <- "G.H.W. Bush"
 presidencial_arreglado[10, "nombre"] <- "G.W. Bush"
 
-colores <- c("#0015BC", "#DE0100")
-font_add_google(
-  name = "Playfair Display",
-  family = "playdis"
-)
-showtext_auto()
-
-barplot(presidencial_arreglado$anos_ejercicio, main = "Años de ejercicio")
-
+# Se genera el gráfico
 grafico_presidentes <- ggplot(
   data = presidencial_arreglado,
   mapping = aes(
@@ -222,15 +229,21 @@ grafico_presidentes <- ggplot(
   scale_fill_manual(values = colores) +
   scale_x_continuous(
     breaks = seq(-8, 8, by = 4),
-    labels = abs(seq(-8, 8, by = 4))
+    labels = ifelse(
+      test = abs(seq(-8, 8, by = 4)) == 0,
+      yes = 0,
+      no = paste(abs(seq(-8, 8, by = 4)), "años")
+    )
   ) +
   theme_minimal() +
   theme(
-    plot.title = element_text(hjust = 0.5),
-    plot.subtitle = element_text(hjust = 0.5),
+    plot.title = element_text(hjust = 0.5, family = "playdis"),
+    plot.subtitle = element_text(hjust = 0.5, family = "playdis"),
     panel.grid.minor.x = element_blank(),
     axis.title.x = element_blank(),
-    legend.position = "bottom"
+    axis.text = element_text(family = "barlow"),
+    legend.position = "bottom",
+    legend.text = element_text(family = "playdis")
   ) +
   labs(
     title = "Años de gobierno por presidente",
@@ -254,7 +267,7 @@ print(cat(
   sep = ""
 ))
 
-  # Qué es lo que está codificando en términos de marcas y canales.
+# Qué es lo que está codificando en términos de marcas y canales.
 print(paste(
   ""
 ))
