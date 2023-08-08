@@ -188,21 +188,59 @@ cat(
 
 # Ítem 5 ------------------------------------------------------------------
 
-# Análisis de la posibilidad de inducir error en el caso expuesto, comparando:
-#los atributos (variables) usados
-#las marcas
-#los canales
-#Qué información se codifica
-#Cómo se codifica la información
-# ¿De qué forma se puede mejorar el gráfico de la izquierda (territorio)?
-# https://www.core77.com/posts/90771/A-Great-Example-of-Better-Data-Visualization-This-Voting-Map-GIF
+# Análisis de la posibilidad de inducir error en el caso expuesto.
 cat(
-  "PENDIENTE!!!!",
-  "Marcas: geometría. Canales: apariencia de las marcas"
+  "Los gráficos presentados son un ejemplo de lo importante que es tener en ",
+  "mente un marco teórico adecuado al momento de generar una visualización de ",
+  "datos ¿qué información es la que se está exponiendo? De ambos gráficos se ",
+  "puede extraer todos los condados de todo Estados Unidos (dato categórico) y",
+  " el partido político que ganó en dicho condado para la elección ",
+  "presidencial de 2016 (también un dato categórico). La diferencia radica en ",
+  "el dato cuantitativo que muestra cada uno: a la izquierda se aprecia la ",
+  "superficie que tiene cada condado, mientras que en el de la derecha se ",
+  "puede observar la cantidad de población que vive ahí.\n",
+
+  "¿Por qué se habrá querido hacer esta visualización? La intención parece ser",
+  " la misma en ambos casos: una consulta para comparar cuál fue el partido ",
+  "más votado en el condado, el Partido Republicano o el Partido Demócrata, y ",
+  "así hacerse una idea de qué candidato fue el vencedor.\n",
+
+  "¿Cómo se realizó la visualización de los datos? Para ambos gráficos se ",
+  "utilizaron como marcas la superficie de figuras geométricas para el dato ",
+  "cuantitativo, siguiendo el área del condado en el primer caso y el tamaño ",
+  "de una circunferencia en el segundo caso. En cuanto a los canales, para ",
+  "identificar al condado se usó la posición espacial de cada condado en el ",
+  "mapa de Estados Unidos, además del color del partido vencedor y, ",
+  "naturalmente, el tamaño como canal para el dato cuantitativo.\n\n",
+
+  "Luego de este pequeño análisis nos podemos preguntar ¿es el gráfico de la ",
+  "izquierda un error? Parece evidente que sí, más quisiera argumentar que la ",
+  "crítica del artículo es incompleta: claramente mostrar al ganador de una ",
+  "elección presidencial en Estados Unidos mediante la superficie de cada ",
+  "condado no nos dice mucho pues, como se resalta en el artículo, son las ",
+  "personas las que votan, no los territorios. Sin embargo, el sistema de ",
+  "elección en Norteamérica es de votación indirecta, donde lo que se vota ",
+  "realmente es cuál opción debe escoger el total de electores que el estado ",
+  "tiene asignado; con esto, mostrar la cantidad de gente que votó en cada ",
+  "condado junto con la opción ganadora tampoco nos ayuda a saber quién ",
+  "finalmente es el vencedor en el país. Quizás la mejor opción para saber ",
+  "quién fue el vencedor sería usar el tamaño de los estados de acuerdo a la ",
+  "cantidad de electores que tiene, junto al color del partido que resultó ",
+  "ganador.\n",
+
+  "Ahora, si la intención es también mostrar cómo votó la mayoría de la ",
+  "población de Estados Unidos, pero como un todo (al igual que se escoje ",
+  "presidente en Chile), se debería agregar algún canal que indique la ",
+  "proporción o porcentaje por el cual un candidato ganó, aunque hacerlo a ",
+  "nivel de condado puede aumentar el ruido, por lo que tomar una unidad ",
+  "territorial mayor, como un estado, puede ser más apropiado. De hecho, para ",
+  "la Ciencia Política podría ser interesante comparar estas 2 visualizaciones",
+  ", pues es sabido que el 2016 Trump (Republicano) ganó por electores, pero ",
+  "Clinton (Demócrata) ganó en total de población.",
+  sep = ""
 )
 
 
-# Ítem 6 ------------------------------------------------------------------
 
 # Se definen algunos estilos previos
 colores <- c("Partido Demócrata" = "#0015BC", "Partido Republicano" = "#DE0100")
