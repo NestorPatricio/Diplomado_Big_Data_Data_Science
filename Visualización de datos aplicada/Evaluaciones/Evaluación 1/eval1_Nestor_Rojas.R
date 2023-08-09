@@ -13,7 +13,9 @@ librerias <- c(
   "lintr",
   "datos",
   "viridis",
-  "showtext"
+  "showtext",
+  "maps",
+  "mapproj"
 )
 for (libreria in librerias) {
   if (!require(libreria, character.only = TRUE)) {
@@ -174,12 +176,13 @@ cat(
 cat(
   "La función coord_map() permite generar representaciones de la superficie",
   "terrestre, o de regiones de esta, de acuerdo a algunas de las proyecciones",
-  "más populares de la cartografía (como la proyección de Mercator, la cual",
-  "usa por defecto). Esto permite que las representaciones gráficas de",
-  "territorios que podamos generar mediante ggplot2 puedan tener la proporción",
-  "correspondiente a la proyección especificada. En este ejercicio usé la ",
-  "proyección 'azequalarea' pues prefiero una proyección que sea más fiel a la",
-  "real dimensión del territorio; acá las líneas de los meridianos tienden a",
+  "más populares de la cartografía (como la de Mercator, la cual usa por",
+  "defecto). Esto posibilita que las representaciones gráficas de territorios",
+  "que queramos generar mediante ggplot2 tengan la proporción correcta según",
+  "la proyección escogida, no quedando esta al arbitrio del tamaño de la",
+  "ventana en la cual se muestra. En este ejercicio usé la proyección",
+  "'azequalarea' pues prefiero una proyección que sea más fiel a la real",
+  "dimensión del territorio; acá las líneas de los meridianos tienden a",
   "conlfuir hacia el polo más cercano, el polo norte en este caso, con el",
   "consecuente estrechamiento del mapa arriba y la transformación de las",
   "líneas rectas de los paralelos en líneas curvas paralelas."
@@ -241,6 +244,7 @@ cat(
 )
 
 
+# Ítem 6 ------------------------------------------------------------------
 
 # Se definen algunos estilos previos
 colores <- c("Partido Demócrata" = "#0015BC", "Partido Republicano" = "#DE0100")
