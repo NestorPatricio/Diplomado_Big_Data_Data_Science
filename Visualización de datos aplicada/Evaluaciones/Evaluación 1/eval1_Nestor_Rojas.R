@@ -78,7 +78,7 @@ cat(
   "matriz, etc). La diferencia radica en que geom_line(), como si fuese una",
   "función, sigue el orden de uno de los ejes, generalmente el eje X; en",
   "cambio, geom_path() sigue el orden en el cual los datos aparecen en el set",
-  "de datos."
+  "de datos.\n"
 )
 
 # Qué hace geom_polygon() a diferencia de geom_path().
@@ -86,7 +86,7 @@ cat(
   "Por otra parte, geom_polygon() sigue todos los puntos del set de datos de",
   "igual forma que geom_path(), pero agrega el relleno dentro del polígono",
   "que se genera, con lo que podemos graficar una figura geométrica que ayuda",
-  "a visualizar mejor los datos que poseen un componente espacial."
+  "a visualizar mejor los datos que poseen un componente espacial.\n"
 )
 
 
@@ -110,7 +110,7 @@ cat(
   "facetas que generan cada una su propia trama para cada valor categórico).",
   "En este ítem la variable v tiene 2 valores distintos, por lo tanto los",
   "datos son agrupados en 2 conjuntos independientes, obviando la conexión",
-  "entre los puntos que hacen el salto de una categorìa a otra."
+  "entre los puntos que hacen el salto de una categorìa a otra.\n"
 )
 
 # ¿Cuál sería un tipo de datos donde geom_path() sea la función a utilizar sobre
@@ -122,7 +122,7 @@ cat(
   "unidmensional. Por esto geom_path() es la función perfecta si es que",
   "queremos dibujar, por ejemplo, una capa de mapas de un territorio o una",
   "representación anatómica sobre la cual queramos destacar algunos puntos con",
-  "alguna información relevante."
+  "alguna información relevante.\n"
 )
 
 
@@ -169,7 +169,7 @@ cat(
   "espacio como coordenadas geográficas. En ese sentido, tanto el color como",
   "el tamaño son más débiles para comparar magnitud, pero al combinarlos se",
   "obtiene más fuerza para expresar las diferencias en la cantidad de vuelos",
-  "que recibe cada aeropuerto."
+  "que recibe cada aeropuerto.\n"
 )
 
 # Revise por qué es relevante el uso de coord_map() y comente lo obtenido.
@@ -185,7 +185,7 @@ cat(
   "dimensión del territorio; acá las líneas de los meridianos tienden a",
   "conlfuir hacia el polo más cercano, el polo norte en este caso, con el",
   "consecuente estrechamiento del mapa arriba y la transformación de las",
-  "líneas rectas de los paralelos en líneas curvas paralelas."
+  "líneas rectas de los paralelos en líneas curvas paralelas.\n"
 )
 
 
@@ -239,7 +239,7 @@ cat(
   "territorial mayor, como un estado, puede ser más apropiado. De hecho, para ",
   "la Ciencia Política podría ser interesante comparar estas 2 visualizaciones",
   ", pues es sabido que el 2016 Trump (Republicano) ganó por electores, pero ",
-  "Clinton (Demócrata) ganó en total de población.",
+  "Clinton (Demócrata) ganó en total de población.\n",
   sep = ""
 )
 
@@ -315,7 +315,7 @@ cat(
   "Para mostrar la información se prefirió usar la geometría de barras con ",
   "orientación horizontal en donde el largo, el color y la posición de estas ",
   "con respecto a un eje central aportan la información que se quiere ",
-  "transmitir.",
+  "transmitir.\n",
   sep = ""
 )
 
@@ -346,6 +346,6 @@ cat(
   "norteamericano. Los colores usados son los característicos de cada partido ",
   "político; sin embargo, alguien que no esté familiarizado con el contexto ",
   "podría percibir ruido con la selección, pues el rojo es también color ",
-  "simbólico del partido comunista, tant en Chile como en el mundo.",
+  "simbólico del partido comunista, tant en Chile como en el mundo.\n",
   sep = ""
 )

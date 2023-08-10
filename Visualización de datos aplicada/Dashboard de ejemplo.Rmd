@@ -1,0 +1,89 @@
+---
+title: "Dashboard DBDDC"
+output: 
+  flexdashboard::flex_dashboard:
+    theme:
+      version: 4
+      base_font:
+        google: Oswald
+      code_font:
+        google: JetBrains Mono
+    orientation: rows
+    vertical_layout: fill
+---
+
+```{r setup, include=FALSE}
+library(flexdashboard)
+# Install thematic and un-comment for themed static plots (i.e., ggplot2)
+# thematic::thematic_rmd()
+setwd(dir = paste0(
+  "/home/nestorprr/Documentos/Diplomado_Big_Data_Data_Science/Visualización de",
+  " datos aplicada"
+))
+source(file = "Evaluaciones/Evaluación 1/eval1_Nestor_Rojas.R")
+```
+# Sección 1
+
+## {data-height = 200}
+
+### Chart A
+Caja 1
+```{r}
+# Código de la caja 1
+library(httr)
+
+r <- GET(url = "https://api.santa.cl/uf")
+uf <- as.numeric(content(x = r)$uf)
+uf <- scales::comma(x = uf, prefix = "$")
+uf
+```
+
+###
+Caja 2
+```{r}
+# Código de la caja 2
+```
+
+### Caja B2
+
+```{r}
+# Código de la caja 2B
+gauge(
+  value = 5500,
+  min = 0,
+  max = 10000
+)
+```
+
+## Column
+
+### Caja C
+Caja 3
+```{r}
+# Código de la caja 3
+```
+
+### Chart D
+Caja 4
+```{r}
+# Código de la caja 4
+```
+
+# Sección 2
+
+### Caja Nueva
+
+```{r}
+valueBox(
+  value = uf,
+  caption = "UF al día de hoy",
+  icon = "fa-money",
+  color = "#77956A"
+)
+```
+
+### Gráfico
+
+```{r}
+grafico_presidentes
+```
