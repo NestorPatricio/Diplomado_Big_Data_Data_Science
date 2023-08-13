@@ -21,10 +21,17 @@ for (libreria in librerias) {
 }
 
 # Se configura el directorio de trabajo
-setwd(paste0(
-  "/home/nestorprr/Documentos/Diplomado_Big_Data_Data_Science/Visualización de",
-  " datos aplicada/Evaluaciones/Evaluación 1/"
-))
+if (Sys.info()["sysname"] == "Windows") {
+  setwd(paste0(
+    "C:\\Users\\nproj\\Documents\\Diplomado_Big_Data_Data_Science\\",
+    "Visualización de datos aplicada\\Evaluaciones\\Evaluación 1"
+  ))
+} else if (Sys.info()["sysname"] == "Linux") {
+  setwd(paste0(
+    "/home/nestorprr/Documentos/Diplomado_Big_Data_Data_Science/Visualización ",
+    "de datos aplicada/Evaluaciones/Evaluación 1/"
+  ))
+}
 
 # Se ejecuta el linter para evaluar el estilo del script
 lint("Gráfico de torta.R")

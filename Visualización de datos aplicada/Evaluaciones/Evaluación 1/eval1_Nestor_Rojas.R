@@ -24,7 +24,8 @@ for (libreria in librerias) {
   }
 }
 
-# Se configura el directorio de trabajo
+# Configuración del directorio de trabajo
+# Trabajo con Linux en una máquina virtual, pero para compartir uso Windows
 if (Sys.info()["sysname"] == "Windows") {
   setwd(paste0(
     "C:\\Users\\nproj\\Documents\\Diplomado_Big_Data_Data_Science\\",
@@ -37,11 +38,11 @@ if (Sys.info()["sysname"] == "Windows") {
   ))
 }
 
-# Se ejecuta el linter para evaluar el estilo del script
+# Se ejecuta el linter de R para evaluar el estilo del script
 lint("eval1_Nestor_Rojas.R")
 
 
-# Datos necesarios --------------------------------------------------------
+# Carga de datos necesarios -----------------------------------------------
 
 df <- tibble(
   x = c(2, 1, 3, 5, 6, 4),
@@ -84,9 +85,10 @@ cat(
 # Qué hace geom_polygon() a diferencia de geom_path().
 cat(
   "Por otra parte, geom_polygon() sigue todos los puntos del set de datos de",
-  "igual forma que geom_path(), pero agrega el relleno dentro del polígono",
-  "que se genera, con lo que podemos graficar una figura geométrica que ayuda",
-  "a visualizar mejor los datos que poseen un componente espacial.\n"
+  "igual forma que geom_path(), pero completa una figura geométrica al unir el",
+  "primer y el último punto del conjunto de datos, a la vez que agrega relleno",
+  "dentro del polígono resultantte, con lo que podemos generar un dibujo que",
+  "nos ayuda a visualizar mejor los datos que poseen un componente espacial.\n"
 )
 
 
@@ -108,9 +110,9 @@ cat(
   "fatores existan en el atributo o variable que se establezca para group,",
   "siempre en la misma área de trabajo, en la misma trama (a diferencia de las",
   "facetas que generan cada una su propia trama para cada valor categórico).",
-  "En este ítem la variable v tiene 2 valores distintos, por lo tanto los",
-  "datos son agrupados en 2 conjuntos independientes, obviando la conexión",
-  "entre los puntos que hacen el salto de una categorìa a otra.\n"
+  "En este caso la variable \"v\" tiene 2 valores distintos, por lo que los",
+  "datos fueron agrupados en 2 conjuntos independientes, obviando la conexión",
+  "entre los puntos que hacen el salto desde una categoría a otra.\n"
 )
 
 # ¿Cuál sería un tipo de datos donde geom_path() sea la función a utilizar sobre
@@ -161,15 +163,17 @@ grafico_4
 # Argumente la elección del tipo de canal que ha utilizado para representar la
 #cantidad de vuelos.
 cat(
-  "Para indicar la cantidad de vuelos he decidio hacer uso de 2 canales que",
+  "Para indicar la cantidad de vuelos decidí hacer uso de 2 canales que",
   "expresan magnitud: un gradiente de color y un gradiente de tamaño. La",
   "elección se basa en el tipo de información que se quiere transmitir (datos",
-  "numéricos contínuos), para lo cual la longitud comparada es muy buena, pero",
-  "no se encuentra disponible dado la restricción de usar la posición en el",
-  "espacio como coordenadas geográficas. En ese sentido, tanto el color como",
-  "el tamaño son más débiles para comparar magnitud, pero al combinarlos se",
-  "obtiene más fuerza para expresar las diferencias en la cantidad de vuelos",
-  "que recibe cada aeropuerto.\n"
+  "numéricos contínuos), para lo cual la longitud comparada es muy buena,",
+  "pero, dada la restricción de usar la posición en el espacio como",
+  "coordenadas geográficas, no se encontraba disponible. Si bien tanto el ",
+  "color como el tamaño son algo más débiles para comparar magnitud, al",
+  "combinarlos se logra mayor fuerza para expresar las diferencias en la",
+  "cantidad de vuelos que recibe cada aeropuerto. Para disminuir el ruido he",
+  "decido sólo explicar el color, dejando que la interpretación del tamaño se",
+  "apoye en lo cromático y en su propio poder explicativo.\n"
 )
 
 # Revise por qué es relevante el uso de coord_map() y comente lo obtenido.
@@ -183,7 +187,7 @@ cat(
   "ventana en la cual se muestra. En este ejercicio usé la proyección",
   "'azequalarea' pues prefiero una proyección que sea más fiel a la real",
   "dimensión del territorio; acá las líneas de los meridianos tienden a",
-  "conlfuir hacia el polo más cercano, el polo norte en este caso, con el",
+  "confluir hacia el polo más cercano, el polo norte en este caso, con el",
   "consecuente estrechamiento del mapa arriba y la transformación de las",
   "líneas rectas de los paralelos en líneas curvas paralelas.\n"
 )
@@ -191,22 +195,22 @@ cat(
 
 # Ítem 5 ------------------------------------------------------------------
 
-# Análisis de la posibilidad de inducir error en el caso expuesto.
+# Análisis de la posibilidad de error en el caso expuesto.
 cat(
   "Los gráficos presentados son un ejemplo de lo importante que es tener en ",
   "mente un marco teórico adecuado al momento de generar una visualización de ",
-  "datos ¿qué información es la que se está exponiendo? De ambos gráficos se ",
-  "puede extraer todos los condados de todo Estados Unidos (dato categórico) y",
-  " el partido político que ganó en dicho condado para la elección ",
-  "presidencial de 2016 (también un dato categórico). La diferencia radica en ",
-  "el dato cuantitativo que muestra cada uno: a la izquierda se aprecia la ",
-  "superficie que tiene cada condado, mientras que en el de la derecha se ",
-  "puede observar la cantidad de población que vive ahí.\n",
+  "datos ¿qué información es la que se está exponiendo? En ambos gráficos se ",
+  "puede identificar a todos los condados de todo Estados Unidos (dato ",
+  "categórico) y al partido político que ganó en dicho condado para la ",
+  "elección presidencial de 2016 (también un dato categórico). La diferencia ",
+  "radica en el dato cuantitativo que muestra cada uno: a la izquierda se ",
+  "aprecia la superficie que tiene cada condado, mientras que en el de la ",
+  "derecha se puede observar la cantidad de población que vive ahí.\n",
 
   "¿Por qué se habrá querido hacer esta visualización? La intención parece ser",
   " la misma en ambos casos: una consulta para comparar cuál fue el partido ",
   "más votado en el condado, el Partido Republicano o el Partido Demócrata, y ",
-  "así hacerse una idea de qué candidato fue el vencedor.\n",
+  "así hacerse una idea de qué candidato fue el vencedor en el país entero.\n",
 
   "¿Cómo se realizó la visualización de los datos? Para ambos gráficos se ",
   "utilizaron como marcas la superficie de figuras geométricas para el dato ",
@@ -217,8 +221,8 @@ cat(
   "naturalmente, el tamaño como canal para el dato cuantitativo.\n\n",
 
   "Luego de este pequeño análisis nos podemos preguntar ¿es el gráfico de la ",
-  "izquierda un error? Parece evidente que sí, más quisiera argumentar que la ",
-  "crítica del artículo es incompleta: claramente mostrar al ganador de una ",
+  "izquierda un error? Parece evidente que sí, más quisiera ir más allá de la ",
+  "crítica que el artículo realiza: claramente mostrar al ganador de una ",
   "elección presidencial en Estados Unidos mediante la superficie de cada ",
   "condado no nos dice mucho pues, como se resalta en el artículo, son las ",
   "personas las que votan, no los territorios. Sin embargo, el sistema de ",
@@ -252,7 +256,7 @@ font_add_google(name = "Playfair Display", family = "playdis")
 font_add_google(name = "Barlow", family = "barlow")
 showtext_auto()
 
-# Se modican los datos para el gráfico
+# Se editan los datos para el gráfico
 presidencial_arreglado <- presidencial %>%
   mutate(
     anos_ejercicio = as.double(fin - inicio) / 365.25,
@@ -310,18 +314,18 @@ cat(
   "Estados Unidos entre los años 1953 y 2021.\n",
   "La intención detrás del gráfico es realizar una consulta de comparación ",
   "entre los distintos períodos presidenciales, poniendo especial énfasis en ",
-  "el partido político al cual pertenece cada uno para poder responder quiénes",
-  ", Demócratas o Republicanos, han estado más tiempo en el poder ejecutivo.\n",
-  "Para mostrar la información se prefirió usar la geometría de barras con ",
+  "el partido político al cual pertenece cada uno para poder saber quiénes, ",
+  "Demócratas o Republicanos, han estado más tiempo en el poder ejecutivo.\n",
+  "Para mostrar la información se escogió la geometría de barras con ",
   "orientación horizontal en donde el largo, el color y la posición de estas ",
   "con respecto a un eje central aportan la información que se quiere ",
   "transmitir.\n",
   sep = ""
 )
 
-# Qué es lo que está codificando en términos de marcas y canales.
+# Qué es lo que se está codificando en términos de marcas y canales.
 cat(
-  "Como marca se usó una línea gruesa en forma de barra, las cuales fueron ",
+  "Como marca se usaron líneas gruesas en forma de barra, las cuales fueron ",
   "dispuestas de forma horizontal para marcar el tiempo en años que cada ",
   "presidente cumplió en su mandato.\n",
   "Como canales se usaron:\n",
@@ -346,6 +350,6 @@ cat(
   "norteamericano. Los colores usados son los característicos de cada partido ",
   "político; sin embargo, alguien que no esté familiarizado con el contexto ",
   "podría percibir ruido con la selección, pues el rojo es también color ",
-  "simbólico del partido comunista, tant en Chile como en el mundo.\n",
+  "simbólico del partido comunista, tanto en Chile como en el mundo.\n",
   sep = ""
 )
