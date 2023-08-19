@@ -24,8 +24,7 @@ librerias <- c(
   "grid",
   "lintr",
   "cluster",
-  "arules",
-  "arulesViz"
+  "factoextra"
 )
 for (libreria in librerias) {
   if (!require(libreria, character.only = TRUE)) {
@@ -109,7 +108,7 @@ formateador <- function(numero) {
 ############################## Desarrollo ##############################
 
 ############################## Pregunta 1 ##############################
-# Usando todas las variables de la base de datos sin tratamiento
+# Usando todas las variables de la base de datos sin tratamiento ----------
 modelo_total_crudo <- valores_kmeans_df(
   datos = datos_banco,
   clusteres = 50,
@@ -148,7 +147,7 @@ silueta_total_crudo <- ggplot(
 codo_total_crudo + silueta_total_crudo
 
 
-# Usando todas las variables de la base de datos con tratamiento
+# Tratamiento de datos ----------------------------------------------------
 # Se tratan los datos
 datos_banco_tratados <- datos_banco %>%
   mutate(
@@ -186,6 +185,8 @@ datos_banco_ponderados <- datos_banco_normalizados %>%
     housing_2 = housing_2 / 3
   )
 
+
+# Usando todas las variables de la base de datos con tratamiento ----------
 # Se procede con los cálculos y gráficos
 modelo_total_tratado <- valores_kmeans_df(
   datos = datos_banco_ponderados,
@@ -254,7 +255,7 @@ total_tratado_k5_df <- datos_banco_tratados %>%
 View(total_tratado_k5_df)
 
 
-# Datos tratados: amount, savings, telephone, credit, status_1
+# Datos tratados: amount, savings, telephone, credit, status_1 ------------
 # Se editan los datos del modelo
 datos_banco_ponderado_modelo_3 <- datos_banco_normalizados %>%
   select(
@@ -352,7 +353,7 @@ moldeo_3_k5_df <- datos_banco_tratados_modelo_3 %>%
 View(moldeo_3_k5_df)
 
 
-# Datos tratados, sólo variables binarias: telephone, credit, status_1
+# Datos tratados, sólo variables binarias: telephone, credit, stat --------
 # Se deja de ejemplo, pero no hay que seguir esta vía
 # Se editan los datos para comparación
 datos_banco_tratados_modelo_4 <- datos_banco_tratados %>%
@@ -524,7 +525,7 @@ moldeo_5_k12_df <- datos_banco_tratados_modelo_5 %>%
 View(moldeo_5_k12_df)
 
 
-# Datos tratados, seleccionados desde los datos numéricos no ordinales
+# Datos tratados, seleccionados desde los datos numéricos no ordin --------
 # Se editan los datos para comparación
 # Candidato 1: amount, property. K: 5, 6, 7 ,8
 # Candidato 2: amount, status_1, status_2, personal_2, personal_3. K: 9
@@ -545,7 +546,7 @@ datos_banco_ponderado_modelo_6 <- datos_banco_normalizados %>%
 # Se procede con los cálculos y gráficos
 modelo_6 <- valores_kmeans_df(
   datos = datos_banco_ponderado_modelo_6,
-  clusteres = 25,
+  clusteres = 50,
   intentos_por_k = 50,
   iteraciones_max = 50
 )
@@ -560,7 +561,7 @@ codo_modelo_6 <- ggplot(
     mapping = aes(x = 7.5, y = 150, xend = 6.3, yend = 50),
     arrow = arrow(length = unit(0.5, "cm")),
     size = 1,
-    color = "red3"
+    color = "#ED0000FF"
   ) +
   labs(
     title = "Valores de K por suma cuadrática de distancias.",
@@ -569,6 +570,7 @@ codo_modelo_6 <- ggplot(
     y = "Suma cuadrática"
   ) +
   theme_light()
+codo_modelo_6
 
 silueta_modelo_6 <- ggplot(
   data = modelo_6[[length(modelo_6)]],
@@ -577,10 +579,10 @@ silueta_modelo_6 <- ggplot(
   geom_line() +
   geom_point() +
   geom_segment(
-    mapping = aes(x = 1.5, y = 0.85, xend = 5.0, yend = 0.86),
+    mapping = aes(x = 14, y = 0.85, xend = 7.0, yend = 0.855),
     arrow = arrow(length = unit(0.5, "cm")),
     size = 1,
-    color = "blue3"
+    color = "#00468BFF"
   ) +
   labs(
     title = "Valores de K por cohesión y separación de clústeres.",
@@ -589,6 +591,7 @@ silueta_modelo_6 <- ggplot(
     y = "Valor de silueta"
   ) +
   theme_light()
+silueta_modelo_6
 
 codo_modelo_6 + silueta_modelo_6
 
@@ -646,6 +649,7 @@ modelo_6_k6 <- kmeans(
   iter.max = 50
 )
 
+# Los valores de las variables del modelo 6 para cada clúster
 modelo_6_k6$size
 modelo_6_k6_df <- datos_banco_tratados_modelo_6 %>%
   mutate(k_6 = as.factor(modelo_6_k6$cluster)) %>%
@@ -653,11 +657,17 @@ modelo_6_k6_df <- datos_banco_tratados_modelo_6 %>%
   summarise_all(mean)
 View(modelo_6_k6_df)
 
+# Gráfico comparando "amount" en los distintos clústeres
 modelo_6_k6_grafico <- datos_banco_tratados_modelo_6 %>%
   mutate(k_6 = as.factor(modelo_6_k6$cluster)) %>%
   ggplot() +
-  geom_hline(yintercept = 2320, linetype = "dashed", linewidth = 1, color = "red3") +
   geom_boxplot(aes(y = amount, x = k_6, fill = k_6), colour = "#000000") +
+  geom_hline(
+    yintercept = 2320, # Marca la mediana de amount
+    linetype = "dashed",
+    linewidth = 1,
+    color = "#AD002AFF"
+  ) +
   theme_light() +
   labs(
     y = "Monto del crédito (DEM)",
@@ -670,6 +680,29 @@ modelo_6_k6_grafico <- datos_banco_tratados_modelo_6 %>%
   ) +
   scale_fill_lancet()
 modelo_6_k6_grafico
+
+# Gráfico de la silueta de 6 clústeres para el modelo 6
+modelo_6_k6_siluetas <- silhouette(
+  x = modelo_6_k6$cluster,
+  dist = dist(datos_banco_ponderado_modelo_6)
+)
+summary(modelo_6_k6_siluetas)
+modelo_6_k6_grafico_silueta <- fviz_silhouette(sil.obj = modelo_6_k6_siluetas) +
+  scale_colour_lancet() +
+  scale_fill_lancet() +
+  labs(
+    title = "Distribución de las siluetas para K = 6.",
+    subtitle = "Variables: amount, status_1, status_2 & personal_2",
+    y = "Valor de silueta"
+  ) +
+  theme_light() +
+  theme(
+    legend.position = "none",
+    axis.title.x = element_blank(),
+    axis.text.x = element_blank(),
+    panel.grid = element_blank()
+  )
+modelo_6_k6_grafico_silueta
 
 # K 7
 modelo_6_k7 <- kmeans(

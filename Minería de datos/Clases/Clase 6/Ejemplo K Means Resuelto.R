@@ -9,13 +9,21 @@ library(factoextra)
 library(tidyverse)
 
 # Indicamos el directorio de trabajo
-setwd(paste0(
-  '/home/nestorprr/Documentos/Diplomado_Big_Data_Data_Science/Minería de datos',
-  '/Clases/Clase 6'
-))
+# Configuración del directorio de trabajo
+if (Sys.info()["sysname"] == "Windows") {
+  setwd(paste0(
+    "C:\\Users\\nproj\\Documents\\Diplomado_Big_Data_Data_Science\\",
+    "\\Minería de datos\\Clases\\Clase 6"
+  ))
+} else if (Sys.info()["sysname"] == "Linux") {
+  setwd(paste0(
+    "/home/nestorprr/Documentos/Diplomado_Big_Data_Data_Science/Minería de ",
+    "datos/Clases/Clase 6/"
+  ))
+}
 
 # Cargamos la base de datos
-datos <- read.csv('faithful.csv', sep=";",header=TRUE)
+datos <- read.csv('faithful.csv', sep=";", header=TRUE)
 
 # Normalizamos los datos
 normalize <- function(x) { return ((x - min(x)) / (max(x) - min(x))) }
