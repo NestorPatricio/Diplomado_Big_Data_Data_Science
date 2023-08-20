@@ -1,4 +1,5 @@
 # Evaluación 3a
+# Wladimir Richard Parada Rebolledo
 # Néstor Patricio Rojas Ríos
 
 ############################## Prolegómenos ##############################
@@ -6,7 +7,7 @@
 if (Sys.info()["sysname"] == "Windows") {
   setwd(paste0(
     "C:\\Users\\nproj\\Documents\\Diplomado_Big_Data_Data_Science\\",
-    "\\Minería de datos\\Evaluaciones\\Evaluación 3a"
+    "\\Minería de datos\\Evaluaciones\\Evaluación 3a\\"
   ))
 } else if (Sys.info()["sysname"] == "Linux") {
   setwd(paste0(
@@ -22,6 +23,7 @@ librerias <- c(
   "patchwork",
   "ggsci",
   "grid",
+  "gridExtra",
   "lintr",
   "cluster",
   "factoextra"
@@ -531,7 +533,7 @@ View(moldeo_5_k12_df)
 # Candidato 2: amount, status_1, status_2, personal_2, personal_3. K: 9
 # Candidato 3: amount, status_1, status_2, personal_2. K: 6
 # Se probó history, status, amount, rate, personal, age, employed, property,
-#savings, telephone, credit
+#savings, telephone, credit, residence
 datos_banco_tratados_modelo_6 <- datos_banco_tratados %>%
   select(
     amount, status_1, status_2, personal_2
@@ -560,7 +562,7 @@ codo_modelo_6 <- ggplot(
   geom_segment(
     mapping = aes(x = 7.5, y = 150, xend = 6.3, yend = 50),
     arrow = arrow(length = unit(0.5, "cm")),
-    size = 1,
+    linewidth = 1,
     color = "#ED0000FF"
   ) +
   labs(
@@ -581,14 +583,14 @@ silueta_modelo_6 <- ggplot(
   geom_segment(
     mapping = aes(x = 14, y = 0.85, xend = 7.0, yend = 0.855),
     arrow = arrow(length = unit(0.5, "cm")),
-    size = 1,
+    linewidth = 1,
     color = "#00468BFF"
   ) +
   labs(
     title = "Valores de K por cohesión y separación de clústeres.",
     subtitle = "Variables: amount, status_1, status_2 & personal_2",
     x = "Número de clústers",
-    y = "Valor de silueta"
+    y = "Valor de silueta promedio"
   ) +
   theme_light()
 silueta_modelo_6
@@ -642,6 +644,7 @@ modelo_6_k4_df <- datos_banco_tratados_modelo_6 %>%
 View(modelo_6_k4_df)
 
 # K 6
+# Este es el valor de K que finalmente se usará en el informe.
 modelo_6_k6 <- kmeans(
   x = datos_banco_ponderado_modelo_6,
   centers = 6,
@@ -652,10 +655,25 @@ modelo_6_k6 <- kmeans(
 # Los valores de las variables del modelo 6 para cada clúster
 modelo_6_k6$size
 modelo_6_k6_df <- datos_banco_tratados_modelo_6 %>%
-  mutate(k_6 = as.factor(modelo_6_k6$cluster)) %>%
-  group_by(k_6) %>%
+  mutate(Clúster = as.factor(modelo_6_k6$cluster)) %>%
+  group_by(Clúster) %>%
   summarise_all(mean)
 View(modelo_6_k6_df)
+
+# Se hace la tabla de una forma más visual
+grid.table(
+  d = modelo_6_k6_df,
+  row = NULL,
+  theme = ttheme_default(
+    core = list(
+      bg_params = list(fill = c("lightblue1", "azure"), col = "black")
+    ),
+    colhead = list(
+      bg_params = list(fill = "deepskyblue2", col = "black"),
+      fg_params = list(col = "white")
+    )
+  )
+)
 
 # Gráfico comparando "amount" en los distintos clústeres
 modelo_6_k6_grafico <- datos_banco_tratados_modelo_6 %>%
@@ -693,15 +711,18 @@ modelo_6_k6_grafico_silueta <- fviz_silhouette(sil.obj = modelo_6_k6_siluetas) +
   labs(
     title = "Distribución de las siluetas para K = 6.",
     subtitle = "Variables: amount, status_1, status_2 & personal_2",
-    y = "Valor de silueta"
+    y = "Valor de silueta",
+    fill = "Clústeres",
+    colour = "Clústeres"
   ) +
   theme_light() +
   theme(
-    legend.position = "none",
     axis.title.x = element_blank(),
     axis.text.x = element_blank(),
     panel.grid = element_blank()
   )
+modelo_6_k6_grafico_silueta$layers[[2]]$aes_params$colour <- "#AD002AFF"
+modelo_6_k6_grafico_silueta$layers[[2]]$aes_params$linewidth <- 1
 modelo_6_k6_grafico_silueta
 
 # K 7
