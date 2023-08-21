@@ -55,6 +55,8 @@ valores_kmeans_df <- function(
   algoritmo = "Hartigan-Wong"
 ) {
   # algortimo puede ser "Hartigan-Wong", "Lloyd", "Forgy", "MacQueen"
+  # Facilita la generación de múltiples clústeres, junto con su valor de silueta
+  #y de suma cuadrática de distancia total
   lista_final <- list()
   dataframe_final <- data.frame(
     N_clusters = 1:clusteres,
@@ -97,12 +99,22 @@ valores_kmeans_df <- function(
 }
 
 normalizacion <- function(valores) {
+  # Realiza normalización de los datos
   return((valores - min(valores)) / (max(valores) - min(valores)))
 }
 
 formateador <- function(numero) {
+  # Define el punto para separación de miles y la coma para separación decimal
   return(
     format(x = numero, big.mark = ".", decimal.mark = ",", scientific = FALSE)
+  )
+}
+
+es_outlier <- function(variable) {
+  # Identifica los valores outliers en un boxplot
+  return(
+    variable < quantile(variable, 0.25) - (1.5 * IQR(variable)) |
+      variable > quantile(variable, 0.75) + (1.5 * IQR(variable))
   )
 }
 
@@ -652,12 +664,12 @@ modelo_6_k6 <- kmeans(
   iter.max = 50
 )
 
-# Los valores de las variables del modelo 6 para cada clúster
+# Los valores de mediana de las variables del modelo 6 para cada clúster
 modelo_6_k6$size
 modelo_6_k6_df <- datos_banco_tratados_modelo_6 %>%
   mutate(Clúster = as.factor(modelo_6_k6$cluster)) %>%
   group_by(Clúster) %>%
-  summarise_all(mean)
+  summarise_all(median)
 View(modelo_6_k6_df)
 
 # Se hace la tabla de una forma más visual
@@ -675,11 +687,24 @@ grid.table(
   )
 )
 
-# Gráfico comparando "amount" en los distintos clústeres
-modelo_6_k6_grafico <- datos_banco_tratados_modelo_6 %>%
+# Se arregla el dataframe para el gráfico de boxplots
+modelo_6_k6_grafico_df <- datos_banco_tratados_modelo_6 %>%
   mutate(k_6 = as.factor(modelo_6_k6$cluster)) %>%
-  ggplot() +
-  geom_boxplot(aes(y = amount, x = k_6, fill = k_6), colour = "#000000") +
+  group_by(k_6) %>%
+  mutate(outlier = es_outlier(amount)) %>%
+  ungroup()
+
+# Gráfico comparando "amount" en los distintos clústeres
+modelo_6_k6_grafico <- ggplot(data = modelo_6_k6_grafico_df) +
+  geom_boxplot(
+    mapping = aes(x = k_6, y = amount, fill = k_6),
+    colour = "#000000",
+    outlier.alpha = 0
+  ) +
+  geom_point(
+    data = modelo_6_k6_grafico_df[modelo_6_k6_grafico_df$outlier, ],
+    mapping = aes(x = k_6, y = amount, colour = k_6, alpha = 0.2)
+  ) +
   geom_hline(
     yintercept = 2320, # Marca la mediana de amount
     linetype = "dashed",
@@ -696,7 +721,8 @@ modelo_6_k6_grafico <- datos_banco_tratados_modelo_6 %>%
     breaks = seq(0, 20000, by = 2000),
     labels = formateador,
   ) +
-  scale_fill_lancet()
+  scale_fill_lancet() +
+  scale_colour_lancet()
 modelo_6_k6_grafico
 
 # Gráfico de la silueta de 6 clústeres para el modelo 6

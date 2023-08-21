@@ -58,10 +58,17 @@ plot(resultados, method = "graph")
 ## Presentación de la evaluación ##
 
 # Datos de listas de reproducción musical
-setwd(paste0(
-"/home/nestorprr/Documentos/Diplomado_Big_Data_Data_Science/Minería de datos/",
-"Clases/Clase 7/"
-))
+if (Sys.info()["sysname"] == "Windows") {
+  setwd(paste0(
+    "C:\\Users\\nproj\\Documents\\Diplomado_Big_Data_Data_Science\\",
+    "\\Minería de datos\\Clases\\Clase 7\\"
+  ))
+} else if (Sys.info()["sysname"] == "Linux") {
+  setwd(paste0(
+    "/home/nestorprr/Documentos/Diplomado_Big_Data_Data_Science/Minería de ",
+    "datos/Clases/Clase 7/"
+  ))
+}
 
 datos <- read.csv(
   file = "../../Evaluaciones/Evaluación 3b/lastfm.csv",
@@ -89,8 +96,8 @@ summary(listas)
 resultados2 <- apriori(
   data = listas,
   parameter = list(
-    supp = 0.01,
-    conf = 0.5,
+    supp = 0.0005,
+    conf = 0.0005,
     minlen = 2,
     maxlen = 10,
     maxtime = 5
