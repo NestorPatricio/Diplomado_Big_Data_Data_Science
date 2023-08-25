@@ -51,6 +51,7 @@ datos <- fread(
   input = "https://github.com/jbkunst/random-data/raw/main/movilidad.gz"
 )
 datos <- as_tibble(x = datos)
+
 glimpse(x = datos)
 
 # Datos 2
@@ -141,7 +142,7 @@ cat(
   "6:00:00 horas corresponde a la 'Madrugada'; entre las 6:00:01 y las ",
   "12:00:00 horas corresponde a la 'Mañana'; la 'Tarde' es entre las 12:00:01 ",
   "y las 19:00:00 horas (el intervalo más largo); y la 'Noche' se define ",
-  "entre las 19:00:01 y las 24:00:00 horas (el intervalo más corto9. La clase ",
+  "entre las 19:00:01 y las 24:00:00 horas (el intervalo más corto). La clase ",
   "en la cual se guardó la información es de tipo 'factor', lo que facilita su",
   " tratamiento por parte de 'R', en vez de tenerlo como una cadena de ",
   "caracteres.",
@@ -164,10 +165,38 @@ grafico_1a <- ggplot(data = datos) +
     subtitle = "Área metropolitana de Santiago, 18 de marzo de 2021"
   ) +
   scale_x_time(
-    breaks = hm(c("0:00", "7:00", "12:00", "19:00", "24:00"))
+    breaks = as_hms(seq(0, 86400, 21600)),
+    labels = as_hms(seq(0, 86400, 21600))
   ) +
   scale_y_continuous(labels = formateador) +
   theme_light()
+grafico_1a
+
+# Describa el gráfico obtenido en función de marcas y señales.
+cat(
+  "El gráfico es un histograma en el que se muestra la cantidad de registros",
+  "provenientes del GPS de teléfonos móviles durante las 24 horas del 18 de",
+  "marzo de 2021. Las marcas corresponden a barras de distinta altura, pero",
+  "con un ancho fijo que presenta intervalos de 15 minutos. Como señal",
+  "principal está la altura para identificar el número de observaciones de GPS",
+  "durante los 15 minutos; por otro lado, el color de cada barra va en",
+  "gradiente para señalar el paso del tiempo."
+)
+
+# ¿Para qué sirve este tipo de visualización (why?)?
+cat(
+  "Esta gráfico sirve para identificar las horas de mayor uso del sistema GPS ",
+  "de los teléfonos móviles. Con esta información se podría planificar el uso ",
+  "eficiente de los recursos de la red en función del horario para este ",
+  "territorio en específico.\n",
+  "Llama la atención que la distribución de registros tiene una sima alrededor",
+  " de las 7 de la mañana, con un plateau máximo que, aproximadamente, va ",
+  "desde las 11:00 hasta las 21:00 horas. La distribución se ve mejor si, en ",
+  "vez de iniciar a la medianoche, el recuento de horas parte desde las 7:00 ",
+  "horas. El gráfico con el eje horario (eje X) modificado se puede observar ",
+  "en la variable 'grafico_1b'.",
+  sep = ""
+)
 
 # Se modifican los datos para cambiar la escala de la hora.
 # Se suma 1 día (86.400 segundos) a los registros anteriores a las 7:00 horas.
@@ -189,22 +218,12 @@ grafico_1b <- ggplot(data = datos_modificados) +
     subtitle = "Área metropolitana de Santiago, 18 de marzo de 2021"
   ) +
   scale_x_time(
-    breaks = hm(c("7:00", "12:00", "19:00", "24:00", "30:00")),
-    labels = as_hms(c("7:00:00", "12:00:00", "19:00:00", "24:00:00", "6:00:00"))
+    breaks = as_hms(seq(25200, 111600, 21600)),
+    labels = as_hms(c(seq(25200, 86400, 21600), seq(0, 25200, 21600)))
   ) +
   scale_y_continuous(labels = formateador) +
   theme_light()
-grafico_1a + grafico_1b
-
-# Describa el gráfico obtenido en función de marcas y señales.
-cat(
-  "Bla, bla, bla..."
-)
-
-# ¿Para qué sirve este tipo de visualización (why?)?
-cat(
-  "Bla, bla, bla..."
-)
+grafico_1b
 
 
 # Ítem 2 ------------------------------------------------------------------
@@ -232,15 +251,15 @@ grafico_2
 # Comente lo observado en el gráfico, mencionando comunas que rompan el patrón.
 cat(
   "Lo que se observa en la gráfica son la cantidad de registros de GPS ",
-  "generados desde teléfonos móviles para la ciudad de Santiago de Chile en el",
-  "día 18 de marzo de 2021. Como marca se usaron barras de distintas alturas ",
-  "que indican la cantidad de registros dentro del bloque horario. Como ",
-  "canales tenemos la altura de la barra, la posición en el eje X que indica ",
-  "a cual horario pertenece, además del color y la faceta que diferencian las ",
-  " distintas comunas de Santiago. Para el eje vertical se decidió dejar las ",
-  "escalas libres, de forma de mejorar la comparación entre los distintos ",
-  "gráficos y evitar que las diferencias de magnitudes entorpezcan el ",
-  "análisis.\n",
+  "generados desde teléfonos móviles para distintas comunas de la ciudad de ",
+  "Santiago de Chile en el día 18 de marzo de 2021. Como marca se usaron ",
+  "barras de distintas alturas que indican la cantidad de registros dentro del",
+  " bloque horario. Como canales tenemos la altura de la barra, la posición en",
+  " el eje X que indica a cual horario pertenece, además del color y la faceta",
+  " que diferencian las distintas comunas de Santiago. Para el eje vertical se",
+  " decidió dejar las escalas libres, de forma de mejorar la comparación entre",
+  " los distintos gráficos y evitar que las diferencias de magnitudes ",
+  "entorpezcan el análisis.\n",
   "Al mirar la información salta a la vista que en todas las comunas el ",
   "horario de tarde es cuando más registros se hacen, siendo la noche el ",
   "horario en segundo lugar para casi todas las comunas. Sin embargo, se puede",
@@ -307,19 +326,19 @@ cat(
   "de Santiago según el posicionamiento del GPS para el día 18 de marzo de ",
   "2021. Específicamente están los 4 dispositivos que mayor diversidad de ",
   "comunas presentaron ese día.\n",
-  "Como marca se escogió la geometría de línea según el orden en que ",
-  "aparecen en el dataframe 'datos', lo que se grafica con la función ",
-  "'geom_path()'. Como marca se usaron colores distintos para cada dispositivo",
-  " y la posición en el espacio para 'dibujar' el recorrido. Además, cada ",
-  "dispositivo cuenta con su propia faceta, lo que mejora la capacidad de ",
-  "comparación.\n",
+  "Como marca se escogió la geometría de línea según el orden en que los ",
+  "registros aparecen en el dataframe 'datos', lo que se grafica con la ",
+  "función 'geom_path()'. Como marca se usaron colores distintos para cada ",
+  "dispositivo y la posición en el espacio para 'dibujar' el recorrido. Además",
+  ", cada dispositivo cuenta con su propia faceta, lo que mejora la capacidad ",
+  "de comparación.\n",
   "Para quien conoce Santiago, son claramente reconocibles los recorridos por ",
   "algunas calles, avenidas o autopistas: la autopista Américo Vespucio, ya ",
-  "sea en su recorrido completo o en un segmento importante de ella. También ",
+  "sea en su recorrido completo o en un segmento importante de ella; también ",
   "es reconocible el eje Alameda - Providencia - Apoquindo que va de este a ",
   "oeste; por último, son destacables las distintas porciones de la Ruta 5, ",
-  "especialmente los 2 brazos de la carretera 5 Sur, en sus entradas por el ",
-  "centro y por General Velásquez.",
+  "especialmente los 2 brazos de la carretera 5 Sur, con sus entradas por el ",
+  "centro y por avenida General Velásquez.",
   sep = ""
 )
 
@@ -331,12 +350,13 @@ cat(
 cat(
   "Considero que la mejor geometría para mostrar una tendencia en el tiempo es",
   "la geometría de línea en 2 dimensiones, donde uno de los ejes recorre el",
-  "tiempo y el otro muestra la cantidad para cada una de las unidades de",
-  "tiempo con las que se trabajará. Si bien podría usarse una geometría de",
-  "barras, en donde la altura de la barra sea la cantidad que se desea evaluar",
-  "las líneas permiten una mejor comparación, especialmente en el caso en que",
-  "las tendencias se crucen, pues en el gráfico de barras puede que algún dato",
-  "quede oculto por otras barras, mientras que las líneas no se solapan."
+  "tiempo y el otro muestra la cantidad de lo que queremos medir para cada una",
+  "de las unidades de tiempo con las que se trabajará. Si bien podría usarse",
+  "una geometría de barras, en donde la altura de la barra sea la cantidad que",
+  "se desea mostrar, las líneas permiten una mejor comparación, especialmente",
+  "en el caso en que las tendencias se crucen, pues en el gráfico de barras",
+  "puede que algún dato quede oculto por otras barras, mientras que las líneas",
+  "no ocurre ese velamiento."
 )
 
 # En caso de que alguno de los nombres usados no tenga registros para un
@@ -408,8 +428,8 @@ cat(
   "usando una escala lineal. Sin mebargo se puede evidenciar una tendencia de",
   "ambos nombres a un aumento progresivo con un máximo entre 1970 y 1971. Esta",
   "tendencia conjunta se nota mucho más en el gráfico con los registros en",
-  "escala logarítmica. Llamativamente, para el año en que yo nací, 1984, ambos",
-  "nombres estaban dejando de ser tendencia."
+  "escala logarítmica. En lo personal, llama la atención que para el año en",
+  "que yo nací, 1984, ambos nombres ya estaban dejando de ser tendencia."
 )
 
 
