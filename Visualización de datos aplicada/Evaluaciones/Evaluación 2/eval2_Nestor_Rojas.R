@@ -127,7 +127,7 @@ cat(
   "La columna 'fecha_hora', como su nombre lo indica, entrega la fecha y la ",
   "hora a la que se realizó un registro, dejándola como clase 'datetime' ",
   "gracias a la función 'as_datetime()'. La información la obtiene desde la ",
-  "columna 'timestamp' que guarda el dato como un número entero que marca el ",
+  "columna 'timestamp', que guarda el dato como un número entero que marca el ",
   "tiempo UNIX (el número de milisegundos desde el 1 de enero de 1970 a la ",
   "medianoche).\n",
   "La columna 'hora2' guarda la hora en formato 'hora:minuto:segundo', mucho ",
@@ -177,10 +177,10 @@ cat(
   "El gráfico es un histograma en el que se muestra la cantidad de registros",
   "provenientes del GPS de teléfonos móviles durante las 24 horas del 18 de",
   "marzo de 2021. Las marcas corresponden a barras de distinta altura, pero",
-  "con un ancho fijo que presenta intervalos de 15 minutos. Como señal",
-  "principal está la altura para identificar el número de observaciones de GPS",
-  "durante los 15 minutos; por otro lado, el color de cada barra va en",
-  "gradiente para señalar el paso del tiempo."
+  "de ancho fijo, que representan intervalos de 15 minutos. Como señal",
+  "principal está la altura de las barras para identificar el número de",
+  "observaciones de GPS durante los 15 minutos; por otro lado, el color de",
+  "cada barra va en gradiente para señalar el paso del tiempo."
 )
 
 # ¿Para qué sirve este tipo de visualización (why?)?
@@ -190,7 +190,7 @@ cat(
   "eficiente de los recursos de la red en función del horario para este ",
   "territorio en específico.\n",
   "Llama la atención que la distribución de registros tiene una sima alrededor",
-  " de las 7 de la mañana, con un plateau máximo que, aproximadamente, va ",
+  " de las 7 de la mañana, con un plateau máximo que va, aproximadamente, ",
   "desde las 11:00 hasta las 21:00 horas. La distribución se ve mejor si, en ",
   "vez de iniciar a la medianoche, el recuento de horas parte desde las 7:00 ",
   "horas. El gráfico con el eje horario (eje X) modificado se puede observar ",
@@ -250,25 +250,28 @@ grafico_2
 
 # Comente lo observado en el gráfico, mencionando comunas que rompan el patrón.
 cat(
-  "Lo que se observa en la gráfica son la cantidad de registros de GPS ",
-  "generados desde teléfonos móviles para distintas comunas de la ciudad de ",
-  "Santiago de Chile en el día 18 de marzo de 2021. Como marca se usaron ",
-  "barras de distintas alturas que indican la cantidad de registros dentro del",
-  " bloque horario. Como canales tenemos la altura de la barra, la posición en",
-  " el eje X que indica a cual horario pertenece, además del color y la faceta",
-  " que diferencian las distintas comunas de Santiago. Para el eje vertical se",
-  " decidió dejar las escalas libres, de forma de mejorar la comparación entre",
-  " los distintos gráficos y evitar que las diferencias de magnitudes ",
-  "entorpezcan el análisis.\n",
+  "Lo que se observa en la gráfica es la cantidad de registros de GPS ",
+  "generados desde teléfonos móviles para distintas franjas horarias en las ",
+  "comunas de la ciudad de Santiago de Chile en el día 18 de marzo de 2021. ",
+  "Como marca se usaron barras de distintas alturas que indican la cantidad de",
+  " registros dentro del bloque horario. Como canales tenemos la altura de la ",
+  "barra, la posición en el eje X que indica a cual horario pertenece, además ",
+  "del color y la faceta que diferencian las distintas comunas de Santiago. ",
+  "Para el eje vertical se decidió dejar las escalas libres, de forma de ",
+  "mejorar la comparación relativa entre las comunas y evitar que las ",
+  "diferencias de magnitudes entorpezcan el análisis.\n",
   "Al mirar la información salta a la vista que en todas las comunas el ",
-  "horario de tarde es cuando más registros se hacen, siendo la noche el ",
-  "horario en segundo lugar para casi todas las comunas. Sin embargo, se puede",
-  " observar que se forman 2 grupos de comunas de a cuerdo a si se producen ",
-  "más registros en la madrugada o en la mañana: en 17 de las 37 comunas se ",
-  "aprecia mayor actividad en la madrugada que en la mañana, llegando en el ",
-  "caso de Cerro Navia a ser el segundo horario con más registros; para las ",
-  "otras 20 comunas la mañana presenta más registros que la madrugada, ",
-  "destacando San Miguel donde es la segunda franja horaria con más registros.",
+  "horario de tarde es cuando más registros se hacen, lo cual es esperable ",
+  "dado que coincide con las horas de mayores registros en el histograma ",
+  "anterior, además de comprender más horas que el resto. El horario de la ",
+  "noche es el segundo en registros en casi todas las comunas. Sin embargo, se",
+  " puede observar que se forman 2 grupos de comunas de a cuerdo a si se ",
+  "producen más registros en la madrugada o en la mañana: en 17 de las 37 ",
+  "comunas se aprecia mayor actividad en la madrugada que en la mañana, ",
+  "llegando, en el caso de Cerro Navia, a ser el segundo horario con más ",
+  "registros; para las otras 20 comunas la mañana presenta más registros que ",
+  "la madrugada, destacando San Miguel donde es la segunda franja horaria con ",
+  "más registros.",
   sep = ""
 )
 
@@ -324,7 +327,7 @@ grafico_4a
 cat(
   "En el gráfico se observa el recorrido de 4 teléfonos móviles por la ciudad ",
   "de Santiago según el posicionamiento del GPS para el día 18 de marzo de ",
-  "2021. Específicamente están los 4 dispositivos que mayor diversidad de ",
+  "2021. Específicamente, están los 4 dispositivos que mayor diversidad de ",
   "comunas presentaron ese día.\n",
   "Como marca se escogió la geometría de línea según el orden en que los ",
   "registros aparecen en el dataframe 'datos', lo que se grafica con la ",
@@ -333,12 +336,13 @@ cat(
   ", cada dispositivo cuenta con su propia faceta, lo que mejora la capacidad ",
   "de comparación.\n",
   "Para quien conoce Santiago, son claramente reconocibles los recorridos por ",
-  "algunas calles, avenidas o autopistas: la autopista Américo Vespucio, ya ",
-  "sea en su recorrido completo o en un segmento importante de ella; también ",
-  "es reconocible el eje Alameda - Providencia - Apoquindo que va de este a ",
-  "oeste; por último, son destacables las distintas porciones de la Ruta 5, ",
-  "especialmente los 2 brazos de la carretera 5 Sur, con sus entradas por el ",
-  "centro y por avenida General Velásquez.",
+  "algunas calles, avenidas o autopistas: la autopista Américo Vespucio, que ",
+  "circunda una porción importante de Santiago, es identificable en los cuatro",
+  " recorridos, ya sea completamente o en un segmento importante de ella; ",
+  "también es reconocible el eje Alameda - Providencia - Apoquindo que va de ",
+  "este a oeste; por último, son destacables las distintas porciones de la ",
+  "Ruta 5, especialmente los 2 brazos de la carretera 5 Sur, con sus entradas ",
+  "por el centro y por avenida General Velásquez.",
   sep = ""
 )
 
@@ -425,7 +429,7 @@ cat(
   "Para la actividad se usaron mis dos nombres: 'Néstor' y 'Patricio'. Lo",
   "primero que destaca es que el nombre 'Patricio' tiene mucha más presencia,",
   "haciendo que la curva del nombre 'Néstor' apenas tenga cambios perceptibles",
-  "usando una escala lineal. Sin mebargo se puede evidenciar una tendencia de",
+  "usando una escala lineal. Sin embargo se puede evidenciar una tendencia de",
   "ambos nombres a un aumento progresivo con un máximo entre 1970 y 1971. Esta",
   "tendencia conjunta se nota mucho más en el gráfico con los registros en",
   "escala logarítmica. En lo personal, llama la atención que para el año en",
@@ -464,11 +468,12 @@ grafico_5
 cat(
   "En el gráfico se observa un aumento de las personas registradas con los",
   "nombres 'Bryan', 'Brayan' y 'Brian' hacia finales de la década de los",
-  "noventa, siendo mayor para el nombre 'Bryan' en 1998 con 1.122 personas que",
-  "fueron inscritas con ese nombre; incluso las grafías menos convencionales",
-  "como 'Braian' y 'Brallan' muestran algún registros para esos años. Lo más",
-  "probable es que esté relacionado a la fama del grupo de música pop",
-  "'Backstreet Boys'. Los nombres de los cantantes se habrían hecho también",
-  "populares, con lo que los hijos de los fans terminarían homenajeando a los",
-  "miembros de la banda."
+  "noventa, siendo mayor para el nombre 'Bryan' en 1998, con 1.122 personas",
+  "que fueron inscritas con ese nombre; incluso las grafías menos",
+  "convencionales como 'Braian' y 'Brallan' también muestran registros para",
+  "esos años. Lo más probable es que esté relacionado a la fama del grupo de",
+  "música pop 'Backstreet Boys'. Los nombres de los cantantes se habrían hecho",
+  "muy populares, con lo que los hijos de los fans terminarían homenajeando",
+  "a los miembros de la banda."
 )
+
