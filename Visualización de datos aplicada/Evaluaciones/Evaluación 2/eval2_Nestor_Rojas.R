@@ -17,7 +17,8 @@ librerias <- c(
   "viridis",
   "ggsci",
   "chilemapas",
-  "patchwork"
+  "patchwork",
+  "R.utils"
 )
 for (libreria in librerias) {
   if (!require(libreria, character.only = TRUE)) {
@@ -51,7 +52,6 @@ datos <- fread(
   input = "https://github.com/jbkunst/random-data/raw/main/movilidad.gz"
 )
 datos <- as_tibble(x = datos)
-
 glimpse(x = datos)
 
 # Datos 2
@@ -191,10 +191,12 @@ cat(
   "territorio en específico.\n",
   "Llama la atención que la distribución de registros tiene una sima alrededor",
   " de las 7 de la mañana, con un plateau máximo que va, aproximadamente, ",
-  "desde las 11:00 hasta las 21:00 horas. La distribución se ve mejor si, en ",
-  "vez de iniciar a la medianoche, el recuento de horas parte desde las 7:00 ",
-  "horas. El gráfico con el eje horario (eje X) modificado se puede observar ",
-  "en la variable 'grafico_1b'.",
+  "desde las 11:00 hasta las 21:00 horas. Si los datos fuesen similares todos ",
+  "los días, se podría cambiar las horas de corte en el eje X, lo cual ",
+  "permitiría mostrar de mejor forma la distribución de los datos, iniciando a",
+  " las 7:00 horas, en vez de la medianoche. Si esta suposición se cumpliera, ",
+  "el gráfico con el eje horario (eje X) modificado sería el de la variable ",
+  "'grafico_1b'.",
   sep = ""
 )
 
@@ -395,7 +397,7 @@ grafico_4b1 <- datos2_con_ceros %>%
   labs(
     x = "Años",
     y = "Cantidad de recién nacidos registrados",
-    title = "Registros de recién nacidos por año según su nombre en Chile",
+    title = "Registro de nombres de recién nacidos por año en Chile",
     subtitle = "Registros en escala lineal",
     colour = "Nombres"
   )
@@ -418,7 +420,7 @@ grafico_4b2 <- datos2_con_ceros %>%
   labs(
     x = "Años",
     y = "Cantidad de recién nacidos registrados",
-    title = "Registros de recién nacidos por año según su nombre en Chile",
+    title = "Registro de nombres de recién nacidos por año en Chile",
     subtitle = "Registros en escala logarítmica en base 10",
     colour = "Nombres"
   )
@@ -459,7 +461,7 @@ grafico_5 <- datos2 %>%
   labs(
     x = "Años",
     y = "Cantidad de recién nacidos registrados",
-    title = "Registros de recién nacidos por año según su nombre en Chile",
+    title = "Registro de nombres de recién nacidos por año en Chile",
     colour = "Nombres"
   )
 grafico_5
@@ -476,4 +478,3 @@ cat(
   "muy populares, con lo que los hijos de los fans terminarían homenajeando",
   "a los miembros de la banda."
 )
-
