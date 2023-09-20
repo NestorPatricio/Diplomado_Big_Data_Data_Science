@@ -46,6 +46,10 @@ normalizacion <- function(valores) {
   return((valores - minimo) / (maximo - minimo))
 }
 
+probab_fugado_si <- function(grupos) {
+  vector <- dataset_categorizado$Fugado[grupos]
+  return(x = sum(vector) / length(vector))
+}
 
 # Carga de datos y primera transformación ---------------------------------
 
@@ -158,11 +162,41 @@ dataset_ponderado <- dataset_tratado %>%
 # Exploración de los datos ------------------------------------------------
 
 dataset_categorizado %>% summary()
+# Fugado (Probabilidad) 28,37%
+# Número de Dependientes (Probabilidad) < 25%
+# Múltiples lìneas (Probabilidad) 49,22%
+# Cobro Mensual (Mediana/Promedio) $36.946/$33.816
+# Historico Cargos extra datos (Promedio) $3.728
+# Historico Cargos Llamadas (Mediana/Promedio) $245.794/$415.005
+# Historico Cobro Acumulado (Mediana/Promedio) $1.235.754/$1.682.313
 
 # Resumen de las variables según los distintos servicios contratados
 dataset_categorizado %>% filter(`Servicio contratado` == 0) %>% summary()
+# Fugado (Probabilidad) 8,41%
+# Número de Dependientes (Probabilidad) > 25%
+# Múltiples lìneas (Probabilidad) 24,78%
+# Cobro Mensual (Mediana/Promedio) $10.478/$10.771
+# Historico Cargos extra datos (Promedio) $0
+# Historico Cargos Llamadas (Mediana/Promedio) $313.118/$452.173
+# Historico Cobro Acumulado (Mediana/Promedio) $670.558/$840.592
+
 dataset_categorizado %>% filter(`Servicio contratado` == 1) %>% summary()
+# Fugado (Probabilidad) 26,40%
+# Número de Dependientes (Probabilidad) < 25%
+# Múltiples lìneas (Probabilidad) NA
+# Cobro Mensual (Mediana/Promedio) $21.359/$21.830
+# Historico Cargos extra datos (Promedio) $4.917
+# Historico Cargos Llamadas (Mediana/Promedio) $0/$0
+# Historico Cobro Acumulado (Mediana/Promedio) $671.463/$826.965
+
 dataset_categorizado %>% filter(`Servicio contratado` == 2) %>% summary()
+# Fugado (Probabilidad) 34,47%
+# Número de Dependientes (Probabilidad) < 25%
+# Múltiples lìneas (Probabilidad) 56,36%
+# Cobro Mensual (Mediana/Promedio) $43.550/$42.225
+# Historico Cargos extra datos (Promedio) $4.651
+# Historico Cargos Llamadas (Mediana/Promedio) $302.640/$462.236
+# Historico Cobro Acumulado (Mediana/Promedio) $1.756.971/$2.047.912
 
 # Resumen de las variables según Fuga
 dataset_categorizado %>% filter(Fugado == 0) %>% summary()
@@ -261,4 +295,217 @@ boxplot_hist_cobro_acumulado <- ggplot(
 #) %>% plot()
 
 
+# Generación de los grupos para Cross-validation --------------------------
+set.seed(seed = 111)
+
+particiones_10 <- createFolds(y = dataset_ponderado$Fugado, k = 10)
+numero_partes <- length(particiones_10)
+
+# Evaluación de los grupos generados
+matriz_grupos <- tibble(
+  grupo = c("Todos los datos", names(particiones_10)),
+  registros = c(nrow(dataset_categorizado), lapply(particiones_10, length)),
+  prob_Fugado_SI = c(
+    round(x = mean(dataset_categorizado$Fugado), digit = 4),
+    lapply(particiones_10, probab_fugado_si)
+  )
+)
+view(matriz_grupos)
+
+
 # Evaluación de modelos ---------------------------------------------------
+
+comparador_modelos <- tibble(
+  modelo = character(),
+  exactitud = numeric(),
+  sensibilidad = numeric(),
+  especificidad = numeric(),
+  verdaderos_positivos = integer(),
+  falsos_negativos = integer(),
+  falsos_positivos = integer(),
+  verdaderos_negativos = integer(),
+  .rows = 0
+)
+
+##### Regresión logística #####
+# Se declaran las variables que guardarán la suma
+suma_vp <- 0
+suma_fn <- 0
+suma_fp <- 0
+suma_vn <- 0
+
+variables_no_significativas <- list()
+
+for (particion in 1:numero_partes) {
+  # Se generan los datasets de entrenamiento y validación de cada iteración
+  datos_entrenamiento <- dataset_ponderado[-particiones_10[[particion]], ] %>%
+    select(!c(
+      Fuga_Otra,
+      Fuga_Disconforme,
+      Fuga_por_Competencia,
+      Fuga_Precio,
+      Fuga_Servicio_Cliente
+    ))
+  datos_validacion <- dataset_ponderado[particiones_10[[particion]], ] %>%
+    select(!c(
+      Fuga_Otra,
+      Fuga_Disconforme,
+      Fuga_por_Competencia,
+      Fuga_Precio,
+      Fuga_Servicio_Cliente
+    ))
+
+  # Se entrena el modelo de la iteración
+  modelo_auxiliar <- glm(
+    formula = Fugado ~ .,
+    data = datos_entrenamiento,
+    family = binomial
+  )
+
+  # Se obtienen las variables que no aportan al modelo significativamente
+  variables_auxiliar <- rownames(
+    coef(summary(modelo_auxiliar))[
+      coef(summary(modelo_auxiliar))[, "Pr(>|z|)"] > 0.05,
+    ]
+  )
+  variables_no_significativas[[particion]] <- variables_auxiliar
+
+  # Se genera la predicción
+  prediccion_auxiliar <- predict(
+    object = modelo_auxiliar,
+    newdata = datos_validacion,
+    type = "response"
+  )
+  prediccion_auxiliar <- ifelse(prediccion_auxiliar < 0.58, 0, 1)
+
+  # Se genera la matriz de confusión
+  matriz_auxiliar <- confusionMatrix(
+    data = as.factor(prediccion_auxiliar),
+    reference = as.factor(datos_validacion$Fugado),
+    positive = "1"
+  )
+
+  # Se suman VP, VN, FP y FN
+  suma_vp <- suma_vp + matriz_auxiliar$table[1]
+  suma_fn <- suma_fn + matriz_auxiliar$table[2]
+  suma_fp <- suma_fp + matriz_auxiliar$table[3]
+  suma_vn <- suma_vn + matriz_auxiliar$table[4]
+}
+
+# Se promedian los valores por el número de partes
+promedio_vp <- round(suma_vp / numero_partes)
+promedio_fn <- round(suma_fn / numero_partes)
+promedio_fp <- round(suma_fp / numero_partes)
+promedio_vn <- round(suma_vn / numero_partes)
+
+# Se insertan en la tabla para comparar los modelos
+comparador_modelos <- bind_rows(
+  comparador_modelos,
+  tibble(
+    modelo = "Regresión logística",
+    exactitud = round(
+      x = (promedio_vp + promedio_vn) /
+        (promedio_vp + promedio_fn + promedio_fp + promedio_vn),
+      digit = 4
+    ),
+    sensibilidad = round((promedio_vp) / (promedio_vp + promedio_fn), 4),
+    especificidad = round((promedio_vn) / (promedio_fp + promedio_vn), 4),
+    verdaderos_positivos = promedio_vp,
+    falsos_negativos = promedio_fn,
+    falsos_positivos = promedio_fp,
+    verdaderos_negativos = promedio_vn
+  )
+)
+
+# Variables no significativas para todos los modelos
+variables_no_significativas <- as.data.frame(
+  do.call(cbind, variables_no_significativas)
+)
+
+##### Árbol de decisiones #####
+# Se declaran las variables que guardarán la suma
+suma_vp <- 0
+suma_fn <- 0
+suma_fp <- 0
+suma_vn <- 0
+
+for (particion in 1:numero_partes) {
+  # Se generan los datasets de entrenamiento y validación de cada iteración
+  datos_entrenamiento <- dataset_ponderado[-particiones_10[[particion]], ] %>%
+    select(!c(
+      Fuga_Otra,
+      Fuga_Disconforme,
+      Fuga_por_Competencia,
+      Fuga_Precio,
+      Fuga_Servicio_Cliente
+    ))
+  datos_validacion <- dataset_ponderado[particiones_10[[particion]], ] %>%
+    select(!c(
+      Fuga_Otra,
+      Fuga_Disconforme,
+      Fuga_por_Competencia,
+      Fuga_Precio,
+      Fuga_Servicio_Cliente
+    ))
+  
+  # Se entrena el modelo de la iteración
+  #modelo_auxiliar <- glm(
+    formula = Fugado ~ .,
+    data = datos_entrenamiento,
+    family = binomial
+  )
+  
+  # Se genera la predicción
+  #prediccion_auxiliar <- predict(
+    object = modelo_auxiliar,
+    newdata = datos_validacion,
+    type = "response"
+  )
+  #prediccion_auxiliar <- ifelse(prediccion_auxiliar < 0.58, 0, 1)
+  
+  # Se genera la matriz de confusión
+  matriz_auxiliar <- confusionMatrix(
+    data = as.factor(prediccion_auxiliar),
+    reference = as.factor(datos_validacion$Fugado),
+    positive = "1"
+  )
+  
+  # Se suman VP, VN, FP y FN
+  suma_vp <- suma_vp + matriz_auxiliar$table[1]
+  suma_fn <- suma_fn + matriz_auxiliar$table[2]
+  suma_fp <- suma_fp + matriz_auxiliar$table[3]
+  suma_vn <- suma_vn + matriz_auxiliar$table[4]
+  print(matriz_auxiliar$table)
+}
+
+# Se promedian los valores por el número de partes
+promedio_vp <- round(suma_vp / numero_partes)
+promedio_fn <- round(suma_fn / numero_partes)
+promedio_fp <- round(suma_fp / numero_partes)
+promedio_vn <- round(suma_vn / numero_partes)
+
+# Se insertan en la tabla para comparar los modelos
+comparador_modelos <- bind_rows(
+  comparador_modelos,
+  tibble(
+    modelo = "Árbol de decisiones",
+    exactitud = round(
+      x = (promedio_vp + promedio_vn) /
+        (promedio_vp + promedio_fn + promedio_fp + promedio_vn),
+      digit = 4
+    ),
+    sensibilidad = round((promedio_vp) / (promedio_vp + promedio_fn), 4),
+    especificidad = round((promedio_vn) / (promedio_fp + promedio_vn), 4),
+    verdaderos_positivos = promedio_vp,
+    falsos_negativos = promedio_fn,
+    falsos_positivos = promedio_fp,
+    verdaderos_negativos = promedio_vn
+  )
+)
+##### Random forest #####
+
+##### KNN #####
+
+##### Support Vector Machine #####
+
+##### Naive Bayes #####
