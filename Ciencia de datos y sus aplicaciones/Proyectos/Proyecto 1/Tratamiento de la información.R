@@ -6,10 +6,13 @@
 # Carga de librerías
 librerias <- c(
   "dplyr",
-  "ggplot2",
   "tibble",
+  "ggplot2",
   "patchwork",
   "readxl",
+  "caret",
+  "rpart",
+  "randomForest",
   "lintr"
 )
 for (libreria in librerias) {
@@ -307,7 +310,7 @@ matriz_grupos <- tibble(
   registros = c(nrow(dataset_categorizado), lapply(particiones_10, length)),
   prob_Fugado_SI = c(
     round(x = mean(dataset_categorizado$Fugado), digit = 4),
-    lapply(particiones_10, probab_fugado_si)
+    lapply(lapply(particiones_10, probab_fugado_si), round, digit = 4)
   )
 )
 view(matriz_grupos)
@@ -416,8 +419,9 @@ comparador_modelos <- bind_rows(
     verdaderos_negativos = promedio_vn
   )
 )
+view(comparador_modelos)
 
-# Variables no significativas para todos los modelos
+# Variables no significativas para todos los modelos de regresión logística
 variables_no_significativas <- as.data.frame(
   do.call(cbind, variables_no_significativas)
 )
@@ -431,51 +435,43 @@ suma_vn <- 0
 
 for (particion in 1:numero_partes) {
   # Se generan los datasets de entrenamiento y validación de cada iteración
-  datos_entrenamiento <- dataset_ponderado[-particiones_10[[particion]], ] %>%
-    select(!c(
-      Fuga_Otra,
-      Fuga_Disconforme,
-      Fuga_por_Competencia,
-      Fuga_Precio,
-      Fuga_Servicio_Cliente
-    ))
-  datos_validacion <- dataset_ponderado[particiones_10[[particion]], ] %>%
-    select(!c(
-      Fuga_Otra,
-      Fuga_Disconforme,
-      Fuga_por_Competencia,
-      Fuga_Precio,
-      Fuga_Servicio_Cliente
-    ))
-  
+  datos_entrenamiento <- dataset_ponderado[-particiones_10[[particion]], ]
+  datos_validacion <- dataset_ponderado[particiones_10[[particion]], ]
+
   # Se entrena el modelo de la iteración
-  #modelo_auxiliar <- glm(
+  modelo_auxiliar <- rpart(
     formula = Fugado ~ .,
     data = datos_entrenamiento,
-    family = binomial
+    method = "class",
+    parms = list(split = "information"),
+    model = TRUE,
+    control = rpart.control(
+      cp = 0.01,
+      minsplit = 20,
+      minbucket = round(x = 20 / 3, digit = 0),
+      maxdepth = 30
+    )
   )
-  
+
   # Se genera la predicción
-  #prediccion_auxiliar <- predict(
+  prediccion_auxiliar <- predict(
     object = modelo_auxiliar,
     newdata = datos_validacion,
-    type = "response"
+    type = "class"
   )
-  #prediccion_auxiliar <- ifelse(prediccion_auxiliar < 0.58, 0, 1)
-  
+
   # Se genera la matriz de confusión
   matriz_auxiliar <- confusionMatrix(
     data = as.factor(prediccion_auxiliar),
     reference = as.factor(datos_validacion$Fugado),
     positive = "1"
   )
-  
+
   # Se suman VP, VN, FP y FN
   suma_vp <- suma_vp + matriz_auxiliar$table[1]
   suma_fn <- suma_fn + matriz_auxiliar$table[2]
   suma_fp <- suma_fp + matriz_auxiliar$table[3]
   suma_vn <- suma_vn + matriz_auxiliar$table[4]
-  print(matriz_auxiliar$table)
 }
 
 # Se promedian los valores por el número de partes
@@ -502,7 +498,72 @@ comparador_modelos <- bind_rows(
     verdaderos_negativos = promedio_vn
   )
 )
+view(comparador_modelos)
+
 ##### Random forest #####
+# Se declaran las variables que guardarán la suma
+suma_vp <- 0
+suma_fn <- 0
+suma_fp <- 0
+suma_vn <- 0
+
+for (particion in 1:numero_partes) {
+  # Se generan los datasets de entrenamiento y validación de cada iteración
+  datos_entrenamiento <- dataset_ponderado[-particiones_10[[particion]], ]
+  datos_validacion <- dataset_ponderado[particiones_10[[particion]], ]
+  
+  # Se entrena el modelo de la iteración
+  modelo_auxiliar <- randomForest(
+    formula = Fugado ~ .,
+    data = datos_entrenamiento
+  )
+  
+  # Se genera la predicción
+  #prediccion_auxiliar <- predict(
+    object = modelo_auxiliar,
+    newdata = datos_validacion,
+    type = "class"
+  )
+  
+  # Se genera la matriz de confusión
+  #matriz_auxiliar <- confusionMatrix(
+    data = as.factor(prediccion_auxiliar),
+    reference = as.factor(datos_validacion$Fugado),
+    positive = "1"
+  )
+  
+  # Se suman VP, VN, FP y FN
+  suma_vp <- suma_vp + matriz_auxiliar$table[1]
+  suma_fn <- suma_fn + matriz_auxiliar$table[2]
+  suma_fp <- suma_fp + matriz_auxiliar$table[3]
+  suma_vn <- suma_vn + matriz_auxiliar$table[4]
+}
+
+# Se promedian los valores por el número de partes
+promedio_vp <- round(suma_vp / numero_partes)
+promedio_fn <- round(suma_fn / numero_partes)
+promedio_fp <- round(suma_fp / numero_partes)
+promedio_vn <- round(suma_vn / numero_partes)
+
+# Se insertan en la tabla para comparar los modelos
+comparador_modelos <- bind_rows(
+  comparador_modelos,
+  tibble(
+    modelo = "Random forest",
+    exactitud = round(
+      x = (promedio_vp + promedio_vn) /
+        (promedio_vp + promedio_fn + promedio_fp + promedio_vn),
+      digit = 4
+    ),
+    sensibilidad = round((promedio_vp) / (promedio_vp + promedio_fn), 4),
+    especificidad = round((promedio_vn) / (promedio_fp + promedio_vn), 4),
+    verdaderos_positivos = promedio_vp,
+    falsos_negativos = promedio_fn,
+    falsos_positivos = promedio_fp,
+    verdaderos_negativos = promedio_vn
+  )
+)
+view(comparador_modelos)
 
 ##### KNN #####
 
