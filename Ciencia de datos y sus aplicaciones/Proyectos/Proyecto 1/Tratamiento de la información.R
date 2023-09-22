@@ -7,6 +7,7 @@
 librerias <- c(
   "dplyr",
   "tibble",
+  "tidyr",
   "ggplot2",
   "patchwork",
   "readxl",
@@ -348,7 +349,8 @@ for (particion in 1:numero_partes) {
       Fuga_por_Competencia,
       Fuga_Precio,
       Fuga_Servicio_Cliente
-    ))
+    )) %>%
+    drop_na() # El modelo requiere no tener datos NA
   datos_validacion <- dataset_ponderado[particiones_10[[particion]], ] %>%
     select(!c(
       Fuga_Otra,
@@ -356,7 +358,8 @@ for (particion in 1:numero_partes) {
       Fuga_por_Competencia,
       Fuga_Precio,
       Fuga_Servicio_Cliente
-    ))
+    )) %>%
+    drop_na() # El modelo requiere no tener datos NA
 
   # Se entrena el modelo de la iteración
   modelo_auxiliar <- glm(
@@ -509,29 +512,48 @@ suma_vn <- 0
 
 for (particion in 1:numero_partes) {
   # Se generan los datasets de entrenamiento y validación de cada iteración
-  datos_entrenamiento <- dataset_ponderado[-particiones_10[[particion]], ]
-  datos_validacion <- dataset_ponderado[particiones_10[[particion]], ]
-  
+  datos_entrenamiento <- dataset_ponderado[-particiones_10[[particion]], ] %>%
+    select(!c(
+      Fuga_Otra,
+      Fuga_Disconforme,
+      Fuga_por_Competencia,
+      Fuga_Precio,
+      Fuga_Servicio_Cliente
+    )) %>%
+    drop_na() # El modelo requiere no tener datos NA
+  datos_validacion <- dataset_ponderado[particiones_10[[particion]], ] %>%
+    select(!c(
+      Fuga_Otra,
+      Fuga_Disconforme,
+      Fuga_por_Competencia,
+      Fuga_Precio,
+      Fuga_Servicio_Cliente
+    )) %>%
+    drop_na() # El modelo requiere no tener datos NA
+
   # Se entrena el modelo de la iteración
   modelo_auxiliar <- randomForest(
-    formula = Fugado ~ .,
-    data = datos_entrenamiento
+    x = datos_entrenamiento[, -24], # variables exógenas
+    y = as.factor(datos_entrenamiento$Fugado), # variable endógena como factor
+    ntree = 500, # número de árboles generados
+    mtry = floor(sqrt(length(datos_entrenamiento_ex)))
+    # número de variables escogidas aleatoreamente por división (5 en este caso)
   )
-  
+
   # Se genera la predicción
-  #prediccion_auxiliar <- predict(
+  prediccion_auxiliar <- predict(
     object = modelo_auxiliar,
     newdata = datos_validacion,
-    type = "class"
+    type = "response"
   )
-  
+
   # Se genera la matriz de confusión
-  #matriz_auxiliar <- confusionMatrix(
+  matriz_auxiliar <- confusionMatrix(
     data = as.factor(prediccion_auxiliar),
     reference = as.factor(datos_validacion$Fugado),
     positive = "1"
   )
-  
+
   # Se suman VP, VN, FP y FN
   suma_vp <- suma_vp + matriz_auxiliar$table[1]
   suma_fn <- suma_fn + matriz_auxiliar$table[2]
@@ -566,7 +588,10 @@ comparador_modelos <- bind_rows(
 view(comparador_modelos)
 
 ##### KNN #####
+# Nestitor
 
 ##### Support Vector Machine #####
+# Wladito
 
 ##### Naive Bayes #####
+# Ramirito
