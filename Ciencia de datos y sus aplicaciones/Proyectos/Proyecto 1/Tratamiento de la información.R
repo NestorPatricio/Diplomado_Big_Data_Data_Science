@@ -15,6 +15,7 @@ librerias <- c(
   "rpart",
   "randomForest",
   "class",
+  "nnet",
   "lintr"
 )
 for (libreria in librerias) {
@@ -806,47 +807,57 @@ suma_fn <- 0
 suma_fp <- 0
 suma_vn <- 0
 
-variables_significativas_ad <- list()
+variables_significativas_nn <- list()
 
 for (particion in 1:numero_partes) {
   # Se generan los datasets de entrenamiento y validación de cada iteración
-  datos_entrenamiento <- dataset_ponderado[-particiones_10[[particion]], ]
-  datos_validacion <- dataset_ponderado[particiones_10[[particion]], ]
-  
+  datos_entrenamiento <- dataset_ponderado[-particiones_10[[particion]], ] %>%
+    select(!c(
+      Fuga_Otra,
+      Fuga_Disconforme,
+      Fuga_por_Competencia,
+      Fuga_Precio,
+      Fuga_Servicio_Cliente
+    )) %>%
+    na.omit() # El modelo requiere no tener datos NA
+  datos_validacion <- dataset_ponderado[particiones_10[[particion]], ] %>%
+    select(!c(
+      Fuga_Otra,
+      Fuga_Disconforme,
+      Fuga_por_Competencia,
+      Fuga_Precio,
+      Fuga_Servicio_Cliente
+    )) %>%
+    na.omit() # El modelo requiere no tener datos NA
+
   # Se entrena el modelo de la iteración
-  #modelo_auxiliar <- rpart(
+  modelo_auxiliar <- nnet(
     formula = Fugado ~ .,
     data = datos_entrenamiento,
-    method = "class",
-    parms = list(split = "information"),
-    model = TRUE,
-    control = rpart.control(
-      cp = 0.01,
-      minsplit = 20,
-      minbucket = round(x = 20 / 3, digit = 0),
-      maxdepth = 30
-    )
+    size = 31,
+    maxit = 1000
   )
-  
+
   # Se obtienen las variables significativas del modelo
-  #variables_significativas_ad[[particion]] <- names(
-    x = modelo_auxiliar$variable.importance
-  )
-  
+  #variables_significativas_nn[[particion]] <- names(
+    #x = modelo_auxiliar$variable.importance
+  #)
+
   # Se genera la predicción
-  #prediccion_auxiliar <- predict(
+  prediccion_auxiliar <- predict(
     object = modelo_auxiliar,
     newdata = datos_validacion,
-    type = "class"
+    type = "raw"
   )
-  
+  prediccion_auxiliar <- ifelse(prediccion_auxiliar < 0.5, 0, 1)
+
   # Se genera la matriz de confusión
   matriz_auxiliar <- confusionMatrix(
     data = as.factor(prediccion_auxiliar),
     reference = as.factor(datos_validacion$Fugado),
     positive = "1"
   )
-  
+
   # Se suman VP, VN, FP y FN
   suma_vp <- suma_vp + matriz_auxiliar$table[1]
   suma_fn <- suma_fn + matriz_auxiliar$table[2]
@@ -864,7 +875,7 @@ promedio_vn <- round(suma_vn / numero_partes)
 comparador_modelos <- bind_rows(
   comparador_modelos,
   tibble(
-    modelo = "Red neuronal artificial",
+    modelo = "Red neuronal (1 x 31)",
     exactitud = round(
       x = (promedio_vp + promedio_vn) /
         (promedio_vp + promedio_fn + promedio_fp + promedio_vn),
@@ -885,6 +896,429 @@ comparador_modelos <- bind_rows(
 view(comparador_modelos)
 
 # Variables significativas para todos los modelos de árboles de decisiones
-variables_significativas_ad <- as.data.frame(
+#variables_significativas_nn <- as.data.frame(
+  #do.call(cbind, variables_significativas_nn)
+#)
+
+
+
+# Experimentos ------------------------------------------------------------
+
+# Se genera el dataset sin variables binarias y sin los valores NA
+dataset_original2 <- dataset_original %>%
+  mutate(
+    Sexo = factor(
+      x = dataset_original$Sexo,
+      levels = unique(dataset_original$Sexo)
+    ),
+    Casado = factor(
+      x = dataset_original$Casado,
+      levels = unique(dataset_original$Casado)
+    ),
+    Plan = factor(
+      x = dataset_original$Plan,
+      levels = unique(dataset_original$Plan)
+    ),
+    `Multiples lineas` = factor(
+      x = dataset_original$`Multiples lineas`,
+      levels = unique(dataset_original$`Multiples lineas`)
+    ),
+    `Servicio Internet` = factor(
+      x = dataset_original$`Servicio Internet`,
+      levels = unique(dataset_original$`Servicio Internet`)
+    ),
+    `Servicio Adicional Antivirus` = factor(
+      x = dataset_original$`Servicio Adicional Antivirus`,
+      levels = unique(dataset_original$`Servicio Adicional Antivirus`)
+    ),
+    `Servicio Respaldo en la Nube` = factor(
+      x = dataset_original$`Servicio Respaldo en la Nube`,
+      levels = unique(dataset_original$`Servicio Respaldo en la Nube`)
+    ),
+    `Seguro Proteccion Equipo` = factor(
+      x = dataset_original$`Seguro Proteccion Equipo`,
+      levels = unique(dataset_original$`Seguro Proteccion Equipo`)
+    ),
+    `Servicio Soporte Premium` = factor(
+      x = dataset_original$`Servicio Soporte Premium`,
+      levels = unique(dataset_original$`Servicio Soporte Premium`)
+    ),
+    `Usa Streaming TV` = factor(
+      x = dataset_original$`Usa Streaming TV`,
+      levels = unique(dataset_original$`Usa Streaming TV`)
+    ),
+    `Usa Streaming Peliculas` = factor(
+      x = dataset_original$`Usa Streaming Peliculas`,
+      levels = unique(dataset_original$`Usa Streaming Peliculas`)
+    ),
+    `Usa Streaming Musica` = factor(
+      x = dataset_original$`Usa Streaming Musica`,
+      levels = unique(dataset_original$`Usa Streaming Musica`)
+    ),
+    `Plan Ilimitado Datos` = factor(
+      x = dataset_original$`Plan Ilimitado Datos`,
+      levels = unique(dataset_original$`Plan Ilimitado Datos`)
+    ),
+    `Tipo Contrato` = factor(
+      x = dataset_original$`Tipo Contrato`,
+      levels = unique(dataset_original$`Tipo Contrato`)
+    ),
+    Fugado = factor(
+      x = dataset_original$Fugado,
+      levels = unique(dataset_original$Fugado)
+    ),
+  ) %>%
+  select(!c(`Causa Fuga`))
+dataset_variables_asignadas1 <- rfImpute(
+  x = Fugado ~ .,
+  data = dataset_original2,
+  iter = 8,
+  ntree = 300
+)
+
+# Se genera el dataset con variables binarias y sin los valores NA
+dataset_ponderado_2 <- dataset_ponderado %>%
+  mutate(Fugado = factor(
+    x = dataset_original$Fugado,
+    levels = unique(dataset_original$Fugado)
+  )) %>%
+  select(!c(
+    Fuga_Otra,
+    Fuga_Disconforme,
+    Fuga_por_Competencia,
+    Fuga_Precio,
+    Fuga_Servicio_Cliente
+  ))
+dataset_variables_asignadas2 <- rfImpute(
+  x = Fugado ~ .,
+  data = dataset_ponderado_2,
+  iter = 8,
+  ntree = 300
+)
+
+##### Random forest 2 #####
+# Se declaran las variables que guardarán la suma
+suma_vp <- 0
+suma_fn <- 0
+suma_fp <- 0
+suma_vn <- 0
+
+variables_significativas_rf2 <- list()
+
+for (particion in 1:numero_partes) {
+  # Se generan los datasets de entrenamiento y validación de cada iteración
+  datos_entrenamiento <- dataset_variables_asignadas1[
+    -particiones_10[[particion]],
+  ]
+  datos_validacion <- dataset_variables_asignadas1[
+    particiones_10[[particion]],
+  ]
+
+  # Se entrena el modelo de la iteración
+  modelo_auxiliar <- randomForest(
+    x = datos_entrenamiento[, -1], # variables exógenas
+    y = as.factor(datos_entrenamiento$Fugado), # variable endógena como factor
+    ntree = 500, # número de árboles generados
+    mtry = floor(sqrt(length(datos_entrenamiento[, -1])))
+    # número de variables escogidas aleatoreamente por división (5 en este caso)
+  )
+
+  # Se obtienen las variables significativas del modelo
+  variables_significativas_rf2[[particion]] <- names(
+    x = modelo_auxiliar$importance[
+      order(-modelo_auxiliar$importance[, 1]),
+    ][1:14]
+  )
+
+  # Se genera la predicción
+  prediccion_auxiliar <- predict(
+    object = modelo_auxiliar,
+    newdata = datos_validacion,
+    type = "response"
+  )
+
+  # Se genera la matriz de confusión
+  matriz_auxiliar <- confusionMatrix(
+    data = prediccion_auxiliar,
+    reference = datos_validacion$Fugado,
+    positive = "Si"
+  )
+
+  # Se suman VP, VN, FP y FN
+  suma_vp <- suma_vp + matriz_auxiliar$table[1]
+  suma_fn <- suma_fn + matriz_auxiliar$table[2]
+  suma_fp <- suma_fp + matriz_auxiliar$table[3]
+  suma_vn <- suma_vn + matriz_auxiliar$table[4]
+}
+
+# Se promedian los valores por el número de partes
+promedio_vp <- round(suma_vp / numero_partes)
+promedio_fn <- round(suma_fn / numero_partes)
+promedio_fp <- round(suma_fp / numero_partes)
+promedio_vn <- round(suma_vn / numero_partes)
+
+# Se insertan en la tabla para comparar los modelos
+comparador_modelos <- bind_rows(
+  comparador_modelos,
+  tibble(
+    modelo = "Random forest 2",
+    exactitud = round(
+      x = (promedio_vp + promedio_vn) /
+        (promedio_vp + promedio_fn + promedio_fp + promedio_vn),
+      digit = 4
+    ),
+    sensibilidad = round((promedio_vp) / (promedio_vp + promedio_fn), 4),
+    especificidad = round((promedio_vn) / (promedio_fp + promedio_vn), 4),
+    valor_F1 = round(
+      x = (2 * promedio_vp) / (2 * promedio_vp + promedio_fn + promedio_fp),
+      digit = 4
+    ),
+    verdaderos_positivos = promedio_vp,
+    falsos_negativos = promedio_fn,
+    falsos_positivos = promedio_fp,
+    verdaderos_negativos = promedio_vn
+  )
+)
+view(comparador_modelos)
+
+# Variables significativas para todos los modelos de random forest
+variables_significativas_rf2 <- as.data.frame(
+  do.call(cbind, variables_significativas_rf2)
+)
+
+##### Regresión logística 2 #####
+# Se declaran las variables que guardarán la suma
+suma_vp <- 0
+suma_fn <- 0
+suma_fp <- 0
+suma_vn <- 0
+
+variables_no_significativas_rl2 <- list()
+variables_significativas_rl2 <- list()
+
+for (particion in 1:numero_partes) {
+  # Se generan los datasets de entrenamiento y validación de cada iteración
+  datos_entrenamiento <- dataset_variables_asignadas2[
+    -particiones_10[[particion]],
+  ]
+  datos_validacion <- dataset_variables_asignadas2[
+    particiones_10[[particion]],
+  ]
+
+  # Se entrena el modelo de la iteración
+  modelo_auxiliar <- glm(
+    formula = Fugado ~ .,
+    data = datos_entrenamiento,
+    family = binomial
+  )
+
+  # Se obtienen las variables que no aportan al modelo significativamente
+  variables_no_significativas_rl2[[particion]] <- rownames(
+    x = coef(summary(modelo_auxiliar))[
+      coef(summary(modelo_auxiliar))[, "Pr(>|z|)"] > 0.05,
+    ]
+  )
+
+  # Se obtienen las variables más significativas del modelo
+  variables_significativas_rl2[[particion]] <- rownames(
+    x = coef(summary(modelo_auxiliar))[
+      coef(summary(modelo_auxiliar))[, "Pr(>|z|)"] < 0.001,
+    ]
+  )
+
+  # Se genera la predicción
+  prediccion_auxiliar <- predict(
+    object = modelo_auxiliar,
+    newdata = datos_validacion,
+    type = "response"
+  )
+  prediccion_auxiliar <- ifelse(prediccion_auxiliar < 0.50, "No", "Si") %>%
+    as.factor()
+
+  # Se genera la matriz de confusión
+  matriz_auxiliar <- confusionMatrix(
+    data = as.factor(prediccion_auxiliar),
+    reference = datos_validacion$Fugado,
+    positive = "Si"
+  )
+
+  # Se suman VP, VN, FP y FN
+  suma_vp <- suma_vp + matriz_auxiliar$table[1]
+  suma_fn <- suma_fn + matriz_auxiliar$table[2]
+  suma_fp <- suma_fp + matriz_auxiliar$table[3]
+  suma_vn <- suma_vn + matriz_auxiliar$table[4]
+}
+
+# Se promedian los valores por el número de partes
+promedio_vp <- round(suma_vp / numero_partes)
+promedio_fn <- round(suma_fn / numero_partes)
+promedio_fp <- round(suma_fp / numero_partes)
+promedio_vn <- round(suma_vn / numero_partes)
+
+# Se insertan en la tabla para comparar los modelos
+comparador_modelos <- bind_rows(
+  comparador_modelos,
+  tibble(
+    modelo = "Regresión logística 2",
+    exactitud = round(
+      x = (promedio_vp + promedio_vn) /
+        (promedio_vp + promedio_fn + promedio_fp + promedio_vn),
+      digit = 4
+    ),
+    sensibilidad = round((promedio_vp) / (promedio_vp + promedio_fn), 4),
+    especificidad = round((promedio_vn) / (promedio_fp + promedio_vn), 4),
+    valor_F1 = round(
+      x = (2 * promedio_vp) / (2 * promedio_vp + promedio_fn + promedio_fp),
+      digit = 4
+    ),
+    verdaderos_positivos = promedio_vp,
+    falsos_negativos = promedio_fn,
+    falsos_positivos = promedio_fp,
+    verdaderos_negativos = promedio_vn
+  )
+)
+view(comparador_modelos)
+
+# Variables no significativas para todos los modelos de regresión logística
+# Pr(> |z|) > 0.05
+variables_no_significativas_rl2 <- as.data.frame(
+  do.call(cbind, variables_no_significativas_rl)
+)
+
+# Variables significativas para todos los modelos de regresión logística
+# Pr(> |z|) < 0.001
+variables_significativas_rl2 <- as.data.frame(
+  do.call(cbind, variables_significativas_rl)
+)
+
+##### Árbol de decisiones 2 #####
+# Se declaran las variables que guardarán la suma
+suma_vp <- 0
+suma_fn <- 0
+suma_fp <- 0
+suma_vn <- 0
+
+variables_significativas_ad2 <- list()
+
+for (particion in 1:numero_partes) {
+  # Se generan los datasets de entrenamiento y validación de cada iteración
+  datos_entrenamiento <- dataset_variables_asignadas1[
+    -particiones_10[[particion]],
+  ]
+  datos_validacion <- dataset_variables_asignadas1[
+    particiones_10[[particion]],
+  ]
+
+  # Se entrena el modelo de la iteración
+  modelo_auxiliar <- rpart(
+    formula = Fugado ~ .,
+    data = datos_entrenamiento,
+    method = "class",
+    parms = list(split = "information"),
+    model = TRUE,
+    control = rpart.control(
+      cp = 0.01,
+      minsplit = 20,
+      minbucket = round(x = 20 / 3, digit = 0),
+      maxdepth = 30
+    )
+  )
+
+  # Se obtienen las variables significativas del modelo
+  variables_significativas_ad2[[particion]] <- names(
+    x = modelo_auxiliar$variable.importance
+  )
+
+  # Se genera la predicción
+  prediccion_auxiliar <- predict(
+    object = modelo_auxiliar,
+    newdata = datos_validacion,
+    type = "class"
+  )
+
+  # Se genera la matriz de confusión
+  matriz_auxiliar <- confusionMatrix(
+    data = as.factor(prediccion_auxiliar),
+    reference = as.factor(datos_validacion$Fugado),
+    positive = "Si"
+  )
+
+  # Se suman VP, VN, FP y FN
+  suma_vp <- suma_vp + matriz_auxiliar$table[1]
+  suma_fn <- suma_fn + matriz_auxiliar$table[2]
+  suma_fp <- suma_fp + matriz_auxiliar$table[3]
+  suma_vn <- suma_vn + matriz_auxiliar$table[4]
+}
+
+# Se promedian los valores por el número de partes
+promedio_vp <- round(suma_vp / numero_partes)
+promedio_fn <- round(suma_fn / numero_partes)
+promedio_fp <- round(suma_fp / numero_partes)
+promedio_vn <- round(suma_vn / numero_partes)
+
+# Se insertan en la tabla para comparar los modelos
+comparador_modelos <- bind_rows(
+  comparador_modelos,
+  tibble(
+    modelo = "Árbol de decisiones 2",
+    exactitud = round(
+      x = (promedio_vp + promedio_vn) /
+        (promedio_vp + promedio_fn + promedio_fp + promedio_vn),
+      digit = 4
+    ),
+    sensibilidad = round((promedio_vp) / (promedio_vp + promedio_fn), 4),
+    especificidad = round((promedio_vn) / (promedio_fp + promedio_vn), 4),
+    valor_F1 = round(
+      x = (2 * promedio_vp) / (2 * promedio_vp + promedio_fn + promedio_fp),
+      digit = 4
+    ),
+    verdaderos_positivos = promedio_vp,
+    falsos_negativos = promedio_fn,
+    falsos_positivos = promedio_fp,
+    verdaderos_negativos = promedio_vn
+  )
+)
+view(comparador_modelos)
+
+# Variables significativas para todos los modelos de árboles de decisiones
+variables_significativas_ad2 <- as.data.frame(
   do.call(cbind, variables_significativas_ad)
 )
+
+##### KNN 2 #####
+# Evaluación de las variables significativas de Regresión logística 2, Árboles
+#de decisiones 2 y Random forest2
+
+#variables_rl2 <- sort(variables_significativas_rl2[c(2:9, 11:13), 9])
+#variables_ad2 <- sort(variables_significativas_ad2[1:12, 10])
+#variables_rf2 <- sort(variables_significativas_rf2[, 10])
+maxima_variables2 <- max(
+  length(variables_rl2),
+  length(variables_ad2),
+  length(variables_rf2)
+)
+
+variables_rl2 <- c(
+  variables_rl2,
+  rep(NA, maxima_variables2 - length(variables_rl2))
+)
+variables_ad2 <- c(
+  variables_ad2,
+  rep(NA, maxima_variables2 - length(variables_ad2))
+)
+variables_rf2 <- c(
+  variables_rf2,
+  rep(NA, maxima_variables2 - length(variables_rf2))
+)
+
+variables_significativas_df2 <- tibble(
+  regresion_logistica = variables_rl2,
+  arbol_decisiones = variables_ad2,
+  random_forest = variables_rf2
+)
+view(variables_significativas_df2)
+
+# Variables exógenas comunes a todos los modelos
+variables_significativas_2 <- unname(unlist(
+  #variables_significativas_df2[c(1:5, 7, 10, 11), 1]
+))
