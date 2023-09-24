@@ -649,9 +649,12 @@ variables_significativas_rf <- as.data.frame(
 # Evaluación de las variables significativas de Regresión logística, Árboles de
 #decisiones y Random forest
 
-variables_rl <- sort(variables_significativas_rl[c(2:9, 11:13), 9])
-variables_ad <- sort(variables_significativas_ad[1:12, 10])
-variables_rf <- sort(variables_significativas_rf[, 10])
+view(variables_significativas_rl)
+variables_rl <- sort(variables_significativas_rl[c(2:8, 10:13), 1])
+view(variables_significativas_ad)
+variables_ad <- sort(variables_significativas_ad[1:12, 1])
+view(variables_significativas_rf)
+variables_rf <- sort(variables_significativas_rf[c(1:12, 14), 1])
 maxima_variables <- max(
   length(variables_rl),
   length(variables_ad),
@@ -680,7 +683,7 @@ view(variables_significativas_df)
 
 # Variables exógenas comunes a todos los modelos
 variables_significativas_1 <- unname(unlist(
-  variables_significativas_df[c(1:5, 7, 10, 11), 1]
+  variables_significativas_df[c(1:5, 7, 11), 1]
 ))
 
 # Se prueban los distintos valores de K
@@ -798,7 +801,115 @@ view(comparador_modelos)
 # Wladito
 
 ##### Naive Bayes #####
-# Ramirito
+# Se declaran las variables que guardarán la suma
+suma_vp <- 0
+suma_fn <- 0
+suma_fp <- 0
+suma_vn <- 0
+
+variables_significativas_ad <- list()
+
+for (particion in 1:numero_partes) {
+  # Se generan los datasets de entrenamiento y validación de cada iteración
+  datos_entrenamiento <- dataset_ponderado[-particiones_10[[particion]], ]
+  datos_validacion <- dataset_ponderado[particiones_10[[particion]], ]
+  
+  # Se entrena el modelo de la iteración
+  #modelo_auxiliar <- naiveBayes(
+    x = datos_entrenamiento_ex,
+    y = datos_entrenamiento_en
+  )
+  
+  # Se obtienen las variables significativas del modelo
+  #variables_significativas_ad[[particion]] <- names(
+    x = modelo_auxiliar$variable.importance
+  )
+  
+  # Se genera la predicción
+  #prediccion_auxiliar <- predict(
+    object = modelo_auxiliar,
+    newdata = datos_validacion,
+    type = "class"
+  )
+  
+  # Se genera la matriz de confusión
+  #matriz_auxiliar <- confusionMatrix(
+    data = as.factor(prediccion_auxiliar),
+    reference = as.factor(datos_validacion$Fugado),
+    positive = "1"
+  )
+  
+  # Se suman VP, VN, FP y FN
+  suma_vp <- suma_vp + matriz_auxiliar$table[1]
+  suma_fn <- suma_fn + matriz_auxiliar$table[2]
+  suma_fp <- suma_fp + matriz_auxiliar$table[3]
+  suma_vn <- suma_vn + matriz_auxiliar$table[4]
+  
+  # Aplicación modelo para Naive Bayes
+  modelo_naive_bayes <- naiveBayes(
+    x = datos_entrenamiento_ex,
+    y = datos_entrenamiento_en
+  )
+  predicciones_naive_bayes <- predict(modelo_naive_bayes, datos_validacion_ex)
+  
+  matriz_naive_bayes <- confusionMatrix(
+    data = as.factor(predicciones_naive_bayes),
+    reference = as.factor(datos_validacion_en),
+    positive = "1"
+  )
+  
+  comparador_naive_bayes <- bind_rows(
+    comparador_naive_bayes,
+    tibble(
+      exactitud = round(
+        x = (matriz_naive_bayes$table[1] + matriz_naive_bayes$table[4]) /
+          sum(matriz_naive_bayes$table),
+        digit = 4
+      ),
+      sensibilidad = round(matriz_naive_bayes$table[1] / sum(matriz_naive_bayes$table[1:2]), 4),
+      especificidad = round(matriz_naive_bayes$table[4] / sum(matriz_naive_bayes$table[3:4]), 4),
+      valor_F1 = round(
+        x = (2 * matriz_naive_bayes$table[1]) / (2 * matriz_naive_bayes$table[1] + matriz_naive_bayes$table[2] + matriz_naive_bayes$table[3]),
+        digit = 4
+      ),
+      verdaderos_positivos = matriz_naive_bayes$table[1],
+      falsos_negativos = matriz_naive_bayes$table[2],
+      falsos_positivos = matriz_naive_bayes$table[3],
+      verdaderos_negativos = matriz_naive_bayes$table[4]
+    )
+  ) %>%
+    arrange(-valor_F1)
+}
+
+# Se promedian los valores por el número de partes
+promedio_vp <- round(suma_vp / numero_partes)
+promedio_fn <- round(suma_fn / numero_partes)
+promedio_fp <- round(suma_fp / numero_partes)
+promedio_vn <- round(suma_vn / numero_partes)
+
+# Se insertan en la tabla para comparar los modelos
+comparador_modelos <- bind_rows(
+  comparador_modelos,
+  tibble(
+    modelo = "Árbol de decisiones",
+    exactitud = round(
+      x = (promedio_vp + promedio_vn) /
+        (promedio_vp + promedio_fn + promedio_fp + promedio_vn),
+      digit = 4
+    ),
+    sensibilidad = round((promedio_vp) / (promedio_vp + promedio_fn), 4),
+    especificidad = round((promedio_vn) / (promedio_fp + promedio_vn), 4),
+    valor_F1 = round(
+      x = (2 * promedio_vp) / (2 * promedio_vp + promedio_fn + promedio_fp),
+      digit = 4
+    ),
+    verdaderos_positivos = promedio_vp,
+    falsos_negativos = promedio_fn,
+    falsos_positivos = promedio_fp,
+    verdaderos_negativos = promedio_vn
+  )
+)
+view(comparador_modelos)
 
 ##### Redes neuronales artificiales #####
 # Se declaran las variables que guardarán la suma
@@ -895,10 +1006,7 @@ comparador_modelos <- bind_rows(
 )
 view(comparador_modelos)
 
-# Variables significativas para todos los modelos de árboles de decisiones
-#variables_significativas_nn <- as.data.frame(
-  #do.call(cbind, variables_significativas_nn)
-#)
+
 
 
 
@@ -1289,8 +1397,11 @@ variables_significativas_ad2 <- as.data.frame(
 # Evaluación de las variables significativas de Regresión logística 2, Árboles
 #de decisiones 2 y Random forest2
 
+view(variables_significativas_rl2)
 #variables_rl2 <- sort(variables_significativas_rl2[c(2:9, 11:13), 9])
+view(variables_significativas_ad2)
 #variables_ad2 <- sort(variables_significativas_ad2[1:12, 10])
+view(variables_significativas_rf2)
 #variables_rf2 <- sort(variables_significativas_rf2[, 10])
 maxima_variables2 <- max(
   length(variables_rl2),
