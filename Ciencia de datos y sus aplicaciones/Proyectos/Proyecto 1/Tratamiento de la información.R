@@ -15,6 +15,7 @@ librerias <- c(
   "rpart",
   "randomForest",
   "class",
+  "e1071",
   "nnet",
   "lintr"
 )
@@ -800,7 +801,7 @@ view(comparador_modelos)
 ##### Support Vector Machine #####
 # Wladito
 
-##### Naive Bayes #####
+##### Naive Bayes Gaussiano #####
 # Se declaran las variables que guardarán la suma
 suma_vp <- 0
 suma_fn <- 0
@@ -811,29 +812,39 @@ variables_significativas_ad <- list()
 
 for (particion in 1:numero_partes) {
   # Se generan los datasets de entrenamiento y validación de cada iteración
-  datos_entrenamiento <- dataset_ponderado[-particiones_10[[particion]], ]
-  datos_validacion <- dataset_ponderado[particiones_10[[particion]], ]
+  datos_entrenamiento <- dataset_ponderado[-particiones_10[[particion]], ] %>%
+    select(!c(
+      Fuga_Otra,
+      Fuga_Disconforme,
+      Fuga_por_Competencia,
+      Fuga_Precio,
+      Fuga_Servicio_Cliente
+    ))
+  datos_validacion <- dataset_ponderado[particiones_10[[particion]], ] %>%
+    select(!c(
+      Fuga_Otra,
+      Fuga_Disconforme,
+      Fuga_por_Competencia,
+      Fuga_Precio,
+      Fuga_Servicio_Cliente
+    ))
   
   # Se entrena el modelo de la iteración
-  #modelo_auxiliar <- naiveBayes(
-    x = datos_entrenamiento_ex,
-    y = datos_entrenamiento_en
-  )
-  
-  # Se obtienen las variables significativas del modelo
-  #variables_significativas_ad[[particion]] <- names(
-    x = modelo_auxiliar$variable.importance
+  modelo_auxiliar <- naiveBayes(
+    formula = Fugado ~ .,
+    data = datos_entrenamiento,
+    na.action = na.omit
   )
   
   # Se genera la predicción
-  #prediccion_auxiliar <- predict(
+  prediccion_auxiliar <- predict(
     object = modelo_auxiliar,
     newdata = datos_validacion,
     type = "class"
   )
   
   # Se genera la matriz de confusión
-  #matriz_auxiliar <- confusionMatrix(
+  matriz_auxiliar <- confusionMatrix(
     data = as.factor(prediccion_auxiliar),
     reference = as.factor(datos_validacion$Fugado),
     positive = "1"
@@ -844,41 +855,6 @@ for (particion in 1:numero_partes) {
   suma_fn <- suma_fn + matriz_auxiliar$table[2]
   suma_fp <- suma_fp + matriz_auxiliar$table[3]
   suma_vn <- suma_vn + matriz_auxiliar$table[4]
-  
-  # Aplicación modelo para Naive Bayes
-  modelo_naive_bayes <- naiveBayes(
-    x = datos_entrenamiento_ex,
-    y = datos_entrenamiento_en
-  )
-  predicciones_naive_bayes <- predict(modelo_naive_bayes, datos_validacion_ex)
-  
-  matriz_naive_bayes <- confusionMatrix(
-    data = as.factor(predicciones_naive_bayes),
-    reference = as.factor(datos_validacion_en),
-    positive = "1"
-  )
-  
-  comparador_naive_bayes <- bind_rows(
-    comparador_naive_bayes,
-    tibble(
-      exactitud = round(
-        x = (matriz_naive_bayes$table[1] + matriz_naive_bayes$table[4]) /
-          sum(matriz_naive_bayes$table),
-        digit = 4
-      ),
-      sensibilidad = round(matriz_naive_bayes$table[1] / sum(matriz_naive_bayes$table[1:2]), 4),
-      especificidad = round(matriz_naive_bayes$table[4] / sum(matriz_naive_bayes$table[3:4]), 4),
-      valor_F1 = round(
-        x = (2 * matriz_naive_bayes$table[1]) / (2 * matriz_naive_bayes$table[1] + matriz_naive_bayes$table[2] + matriz_naive_bayes$table[3]),
-        digit = 4
-      ),
-      verdaderos_positivos = matriz_naive_bayes$table[1],
-      falsos_negativos = matriz_naive_bayes$table[2],
-      falsos_positivos = matriz_naive_bayes$table[3],
-      verdaderos_negativos = matriz_naive_bayes$table[4]
-    )
-  ) %>%
-    arrange(-valor_F1)
 }
 
 # Se promedian los valores por el número de partes
