@@ -41,7 +41,7 @@ if (Sys.info()["sysname"] == "Windows") {
 }
 
 # Se ejecuta el linter de R para evaluar el estilo del script
-lint("Tratamiento de la información.R")
+lint(filename = "Selección de modelo.R")
 
 
 # Funciones ---------------------------------------------------------------
@@ -457,19 +457,24 @@ for (particion in 1:numero_partes) {
     family = binomial
   )
 
+  # Se obtiene la importancia de las variables
+  significancia_variables <- coef(summary(modelo_auxiliar_rl)) %>%
+    as_tibble(rownames = "id") %>%
+    arrange(`Pr(>|z|)`)
+
   # Se obtienen las variables que no aportan al modelo significativamente
-  variables_no_significativas_rl[[particion]] <- rownames(
-    x = coef(summary(modelo_auxiliar_rl))[
-      coef(summary(modelo_auxiliar_rl))[, "Pr(>|z|)"] > 0.05,
-    ]
-  )
+  nombre_part <- paste("Fold", as.character(particion))
+  variables_no_significativas_rl[[nombre_part]] <- significancia_variables %>%
+    filter(`Pr(>|z|)` > 0.05) %>%
+    select(id) %>%
+    unlist()
 
   # Se obtienen las variables más significativas del modelo
-  variables_significativas_rl[[particion]] <- rownames(
-    x = coef(summary(modelo_auxiliar_rl))[
-      coef(summary(modelo_auxiliar_rl))[, "Pr(>|z|)"] < 0.001,
-    ]
-  )
+  variables_significativas_rl[[nombre_part]] <- significancia_variables %>%
+    filter(`Pr(>|z|)` < 0.001) %>%
+    arrange(desc(`Pr(>|z|)`)) %>%
+    select(id) %>%
+    unlist()
 
   # Se genera la predicción
   prediccion_auxiliar_rl <- predict(
@@ -510,7 +515,7 @@ comparador_modelos <- bind_rows(
       digit = 4
     ),
     sensibilidad = round(
-      x = promedio_vp_rl /(promedio_vp_rl + promedio_fn_rl),
+      x = promedio_vp_rl / (promedio_vp_rl + promedio_fn_rl),
       digit = 4
     ),
     especificidad = round(
@@ -535,11 +540,31 @@ view(comparador_modelos)
 
 # Variables no significativas para todos los modelos de regresión logística
 # Pr(> |z|) > 0.05
-variables_no_significativas_rl <- as.data.frame(variables_no_significativas_rl)
+maximo_variables_no_significativas_rl <- lapply(
+  X = variables_no_significativas_rl,
+  FUN = length
+) %>%
+  unlist() %>%
+  max()
+variables_no_significativas_rl <- data.frame(lapply(
+  X = variables_no_significativas_rl,
+  FUN = `length<-`,
+  maximo_variables_no_significativas_rl
+))
 
 # Variables significativas para todos los modelos de regresión logística
 # Pr(> |z|) < 0.001
-variables_significativas_rl <- as.data.frame(variables_significativas_rl)
+maximo_variables_significativas_rl <- lapply(
+  X = variables_significativas_rl,
+  FUN = length
+) %>%
+  unlist() %>%
+  max()
+variables_significativas_rl <- data.frame(lapply(
+  X = variables_significativas_rl,
+  FUN = `length<-`,
+  maximo_variables_significativas_rl
+))
 
 ##### Árbol de decisiones #####
 # Se declaran las variables que guardarán la suma
@@ -934,7 +959,7 @@ for (particion in 1:numero_partes) {
     METHOD = svm,
     train.x = Fugado ~ .,
     data = datos_entrenamiento_svm,
-    kernel = 'linear',
+    kernel = "linear",
     cost = 0.1,
     scale = TRUE
   )
@@ -1001,10 +1026,6 @@ comparador_modelos <- bind_rows(
 )
 view(comparador_modelos)
 
-# Variables significativas para todos los modelos de árboles de decisiones
-#variables_significativas_svm <- as.data.frame(variables_significativas_ad)
-
-
 ##### Naive Bayes Gaussiano #####
 # Se declaran las variables que guardarán la suma
 suma_vp_nb <- 0
@@ -1022,28 +1043,28 @@ for (particion in 1:numero_partes) {
   datos_validacion_nb <- dataset_variables_asignadas2[
     particiones_10[[particion]],
   ]
-  
+
   # Se entrena el modelo de la iteración
   modelo_auxiliar_nb <- naiveBayes(
     formula = Fugado ~ .,
     data = datos_entrenamiento_nb,
     na.action = na.omit
   )
-  
+
   # Se genera la predicción
   prediccion_auxiliar_nb <- predict(
     object = modelo_auxiliar_nb,
     newdata = datos_validacion_nb,
     type = "class"
   )
-  
+
   # Se genera la matriz de confusión
   matriz_auxiliar_nb <- confusionMatrix(
     data = as.factor(prediccion_auxiliar_nb),
     reference = datos_validacion_nb$Fugado,
     positive = "Si"
   )
-  
+
   # Se suman VP, VN, FP y FN
   suma_vp_nb <- suma_vp_nb + matriz_auxiliar_nb$table[1]
   suma_fn_nb <- suma_fn_nb + matriz_auxiliar_nb$table[2]
@@ -1175,6 +1196,117 @@ comparador_modelos <- bind_rows(
     verdaderos_negativos = promedio_vn_nn,
     observaciones = promedio_vp_nn + promedio_fn_nn + promedio_fp_nn +
       promedio_vn_nn
+  )
+)
+view(comparador_modelos)
+
+
+
+# Experimentos ------------------------------------------------------------
+
+##### Support Vector Machine #####
+# Se declaran las variables que guardarán la suma
+suma_vp_svm2 <- 0
+suma_fn_svm2 <- 0
+suma_fp_svm2 <- 0
+suma_vn_svm2 <- 0
+
+variables_significativas_svm2 <- list()
+
+for (particion in 1:numero_partes) {
+  # Se generan los datasets de entrenamiento y validación de cada iteración
+  datos_entrenamiento_svm2 <- dataset_variables_asignadas1[
+    -particiones_10[[particion]],
+  ]
+  datos_validacion_svm2 <- dataset_variables_asignadas1[
+    particiones_10[[particion]],
+  ]
+
+  modelo_svm2 <- fit(
+    x = Fugado ~ .,
+    data = datos_entrenamiento_svm,
+    model = "svm",
+    kernel = "vanilladot",
+    C = 0.1
+  )
+
+  # Se obtienen las variables significativas del modelo
+  importancia_svm2 <- Importance(modelo_svm2, data = datos_entrenamiento_svm2)
+  importancia_df_svm2 <- tibble(
+    variable = names(datos_entrenamiento_svm2),
+    importancia = importancia_svm2$imp
+  ) %>%
+    arrange(-importancia) %>%
+    head(n = 14)
+  variables_significativas_svm2[[particion]] <- importancia_df_svm2 %>%
+    select(variable) %>%
+    unlist()
+
+  # Se genera la predicción
+  prediccion_probabilidad_svm2 <- predict(
+    object = modelo_svm2,
+    newdata = datos_validacion_svm2,
+    type = "class"
+  ) > 0.5
+  prediccion_probabilidad_svm2 <- as_tibble(prediccion_probabilidad_svm2)
+  prediccion_probabilidad_svm2 <- prediccion_probabilidad_svm2 %>%
+    mutate(
+      valor = ifelse(No == TRUE, "No", "Si"),
+      valor = factor(x = valor, levels = c("No", "Si"))
+    )
+  prediccion_auxiliar_svm2 <- prediccion_probabilidad_svm2$valor
+
+  # Se genera la matriz de confusión
+  matriz_auxiliar_svm2 <- confusionMatrix(
+    data = prediccion_auxiliar_svm2,
+    reference = datos_validacion_svm2$Fugado,
+    positive = "Si"
+  )
+
+  # Se suman VP, VN, FP y FN
+  suma_vp_svm2 <- suma_vp_svm2 + matriz_auxiliar_svm2$table[1]
+  suma_fn_svm2 <- suma_fn_svm2 + matriz_auxiliar_svm2$table[2]
+  suma_fp_svm2 <- suma_fp_svm2 + matriz_auxiliar_svm2$table[3]
+  suma_vn_svm2 <- suma_vn_svm2 + matriz_auxiliar_svm2$table[4]
+}
+
+# Se promedian los valores por el número de partes
+promedio_vp_svm2 <- round(suma_vp_svm2 / numero_partes)
+promedio_fn_svm2 <- round(suma_fn_svm2 / numero_partes)
+promedio_fp_svm2 <- round(suma_fp_svm2 / numero_partes)
+promedio_vn_svm2 <- round(suma_vn_svm2 / numero_partes)
+
+# Se insertan en la tabla para comparar los modelos
+comparador_modelos <- bind_rows(
+  comparador_modelos,
+  tibble(
+    modelo = "Support vector machines 2",
+    exactitud = round(
+      x = (promedio_vp_svm2 + promedio_vn_svm2) /
+        (promedio_vp_svm + promedio_fn_svm2 + promedio_fp_svm2 +
+           promedio_vn_svm2),
+      digit = 4
+    ),
+    sensibilidad = round(
+      x = promedio_vp_svm2 / (promedio_vp_svm2 + promedio_fn_svm2),
+      digit = 4
+    ),
+    especificidad = round(
+      x = promedio_vn_svm2 / (promedio_fp_svm2 + promedio_vn_svm2),
+      digit = 4
+    ),
+    dif_sen_esp = abs(sensibilidad - especificidad),
+    valor_F1 = round(
+      x = (2 * promedio_vp_svm2) /
+        (2 * promedio_vp_svm2 + promedio_fn_svm2 + promedio_fp_svm2),
+      digit = 4
+    ),
+    verdaderos_positivos = promedio_vp_svm2,
+    falsos_negativos = promedio_fn_svm2,
+    falsos_positivos = promedio_fp_svm2,
+    verdaderos_negativos = promedio_vn_svm2,
+    observaciones = promedio_vp_svm2 + promedio_fn_svm2 + promedio_fp_svm2 +
+      promedio_vn_svm2
   )
 )
 view(comparador_modelos)
