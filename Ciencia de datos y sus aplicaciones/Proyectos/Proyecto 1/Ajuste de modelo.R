@@ -8,15 +8,9 @@ librerias <- c(
   "dplyr",
   "tibble",
   "tidyr",
-  "ggplot2",
-  "patchwork",
+  #"ggplot2",
   "readxl",
   "caret",
-  #"rpart",
-  #"randomForest",
-  #"class",
-  #"e1071",
-  #"nnet",
   "lintr"
 )
 for (libreria in librerias) {
@@ -56,6 +50,31 @@ normalizacion <- function(valores) {
 probab_fugado_si <- function(grupos, dataset) {
   vector <- dataset$Fugado[grupos]
   return(x = sum(vector) / length(vector))
+}
+
+grafico_cajas <- function(dataset, variable_exo, variable_end = "Fugado") {
+  exogenas <- dataset[, variable_exo]
+  endogena <- dataset[, variable_end]
+  grafico <- ggplot(mapping = aes(y = exogenas, x = as.factor(endogena))) +
+    geom_boxplot() +
+    theme_minimal() +
+    labs(
+      x = variable_end,
+      y = variable_exo
+    )
+  return(grafico)
+}
+
+histograma <- function(dataset, variable_exo) {
+  exogenas <- dataset[, variable_exo]
+  grafico <- ggplot(mapping = aes(x = exogenas, y = after_stat(density))) +
+    geom_histogram() +
+    theme_minimal() +
+    labs(
+      x = variable_exo,
+      y = "Densidad de probabilidad"
+    )
+  return(grafico)
 }
 
 
@@ -226,6 +245,124 @@ dataset_ambos_sin_fuga <- dataset_ambos %>%
   ))
 
 
+# Evaluación de los datasets ----------------------------------------------
+
+##### Resumen de personas fugadas o no #####
+numero_fugados <- tibble(
+  Dataset = character(),
+  Fugado_NO = integer(),
+  Fugado_SI = integer(),
+  SI_veces_NO = numeric(),
+  Probab_Fugado = numeric()
+) %>%
+  add_row(
+    Dataset = "Solo teléfono",
+    Fugado_NO = summary(as.factor(dataset_telefono_sin_fuga$Fugado))[1],
+    Fugado_SI = summary(as.factor(dataset_telefono_sin_fuga$Fugado))[2],
+    SI_veces_NO = round(x = Fugado_NO / Fugado_SI, digit = 2),
+    Probab_Fugado = round(
+      x = (Fugado_SI * 100) / (Fugado_SI + Fugado_NO),
+      digit = 2
+    )
+  ) %>%
+  add_row(
+    Dataset = "Solo internet",
+    Fugado_NO = summary(as.factor(dataset_internet_sin_fuga$Fugado))[1],
+    Fugado_SI = summary(as.factor(dataset_internet_sin_fuga$Fugado))[2],
+    SI_veces_NO = round(x = Fugado_NO / Fugado_SI, digit = 2),
+    Probab_Fugado = round(
+      x = (Fugado_SI * 100) / (Fugado_SI + Fugado_NO),
+      digit = 2
+    )
+  ) %>%
+  add_row(
+    Dataset = "Ambos servicios",
+    Fugado_NO = summary(as.factor(dataset_ambos_sin_fuga$Fugado))[1],
+    Fugado_SI = summary(as.factor(dataset_ambos_sin_fuga$Fugado))[2],
+    SI_veces_NO = round(x = Fugado_NO / Fugado_SI, digit = 2),
+    Probab_Fugado = round(
+      x = (Fugado_SI * 100) / (Fugado_SI + Fugado_NO),
+      digit = 2
+    )
+  )
+
+
+##### Dataset sólo teléfono #####
+resumen_telefono <- tibble(
+  variable = names(dataset_telefono_sin_fuga),
+  promedio_NO = lapply(
+    X = dataset_telefono_sin_fuga[dataset_telefono_sin_fuga$Fugado == 0, ],
+    FUN = mean
+  ) %>%
+    unlist(),
+  promedio_SI = lapply(
+    X = dataset_telefono_sin_fuga[dataset_telefono_sin_fuga$Fugado == 1, ],
+    FUN = mean
+  ) %>%
+    unlist(),
+  mediana_NO = lapply(
+    X = dataset_telefono_sin_fuga[dataset_telefono_sin_fuga$Fugado == 0, ],
+    FUN = median
+  ) %>%
+    unlist(),
+  mediana_SI = lapply(
+    X = dataset_telefono_sin_fuga[dataset_telefono_sin_fuga$Fugado == 1, ],
+    FUN = median
+  ) %>%
+    unlist()
+)
+
+##### Dataset sólo internet #####
+resumen_internet <- tibble(
+  variable = names(dataset_internet_sin_fuga),
+  promedio_NO = lapply(
+    X = dataset_internet_sin_fuga[dataset_internet_sin_fuga$Fugado == 0, ],
+    FUN = mean
+  ) %>%
+    unlist(),
+  promedio_SI = lapply(
+    X = dataset_internet_sin_fuga[dataset_internet_sin_fuga$Fugado == 1, ],
+    FUN = mean
+  ) %>%
+    unlist(),
+  mediana_NO = lapply(
+    X = dataset_internet_sin_fuga[dataset_internet_sin_fuga$Fugado == 0, ],
+    FUN = median
+  ) %>%
+    unlist(),
+  mediana_SI = lapply(
+    X = dataset_internet_sin_fuga[dataset_internet_sin_fuga$Fugado == 1, ],
+    FUN = median
+  ) %>%
+    unlist()
+)
+
+##### Dataset ambos servicios #####
+resumen_ambos <- tibble(
+  variable = names(dataset_ambos_sin_fuga),
+  promedio_NO = lapply(
+    X = dataset_ambos_sin_fuga[dataset_ambos_sin_fuga$Fugado == 0, ],
+    FUN = mean
+  ) %>%
+    unlist(),
+  promedio_SI = lapply(
+    X = dataset_ambos_sin_fuga[dataset_ambos_sin_fuga$Fugado == 1, ],
+    FUN = mean
+  ) %>%
+    unlist(),
+  mediana_NO = lapply(
+    X = dataset_ambos_sin_fuga[dataset_ambos_sin_fuga$Fugado == 0, ],
+    FUN = median
+  ) %>%
+    unlist(),
+  mediana_SI = lapply(
+    X = dataset_ambos_sin_fuga[dataset_ambos_sin_fuga$Fugado == 1, ],
+    FUN = median
+  ) %>%
+    unlist()
+)
+
+
 # Generación de los grupos para Cross-validation --------------------------
 
 set.seed(seed = 961169)
@@ -324,8 +461,7 @@ comparador_modelos <- tibble(
   falsos_negativos = integer(),
   falsos_positivos = integer(),
   verdaderos_negativos = integer(),
-  observaciones = integer(),
-  .rows = 0
+  observaciones = integer()
 )
 
 ##### Regresión logística teléfono #####
@@ -349,7 +485,9 @@ for (particion in 1:numero_partes) {
 
   # Se entrena el modelo de la iteración
   modelo_auxiliar_fono <- glm(
-    formula = Fugado ~ .,
+    formula = Fugado ~ Casado + Numero.Dependientes +
+      Recomendaciones.realizadas + Meses.como.Cliente + Plan_B +
+      Tipo_Contrato_mensual,
     data = datos_entrenamiento_fono,
     family = binomial
   )
@@ -379,7 +517,7 @@ for (particion in 1:numero_partes) {
     newdata = datos_validacion_fono,
     type = "response"
   )
-  prediccion_auxiliar_fono <- ifelse(prediccion_auxiliar_fono < 0.50, 0, 1)
+  prediccion_auxiliar_fono <- ifelse(prediccion_auxiliar_fono < 0.30, 0, 1)
 
   # Se genera la matriz de confusión
   matriz_auxiliar_fono <- confusionMatrix(
@@ -485,7 +623,11 @@ for (particion in 1:numero_partes) {
 
   # Se entrena el modelo de la iteración
   modelo_auxiliar_int <- glm(
-    formula = Fugado ~ .,
+    formula = Fugado ~ Edad + Casado + Numero.Dependientes +
+      Recomendaciones.realizadas + Meses.como.Cliente +
+      Servicio.Adicional.Antivirus + Servicio.Soporte.Premium +
+      Historico.Cobro.Acumulado + Plan_D + Tipo_Contrato_mensual +
+      Tipo_Contrato_anual,
     data = datos_entrenamiento_int,
     family = binomial
   )
@@ -515,7 +657,7 @@ for (particion in 1:numero_partes) {
     newdata = datos_validacion_int,
     type = "response"
   )
-  prediccion_auxiliar_int <- ifelse(prediccion_auxiliar_int < 0.50, 0, 1)
+  prediccion_auxiliar_int <- ifelse(prediccion_auxiliar_int < 0.4, 0, 1)
 
   # Se genera la matriz de confusión
   matriz_auxiliar_int <- confusionMatrix(
@@ -621,7 +763,10 @@ for (particion in 1:numero_partes) {
 
   # Se entrena el modelo de la iteración
   modelo_auxiliar_dos <- glm(
-    formula = Fugado ~ .,
+    #formula = Fugado ~ .,
+    formula = Fugado ~ Edad + Casado + Numero.Dependientes + Recomendaciones.realizadas + Meses.como.Cliente + Cargo.Mensual.LLamadas + Servicio.Adicional.Antivirus + Servicio.Respaldo.en.la.Nube + Seguro.Proteccion.Equipo + Servicio.Soporte.Premium + Usa.Streaming.Peliculas + Usa.Streaming.Musica + Cobro.Mensual + Historico.Cargos.Llamadas + Historico.Cobro.Acumulado + Plan_A + Plan_D + Plan_E + Tipo_Contrato_mensual + Tipo_Contrato_anual,
+    #formula = Fugado ~ Edad + Casado + Numero.Dependientes + Recomendaciones.realizadas + Meses.como.Cliente + Cargo.Mensual.LLamadas + Servicio.Adicional.Antivirus + Servicio.Respaldo.en.la.Nube + Seguro.Proteccion.Equipo + Servicio.Soporte.Premium + Cobro.Mensual + Historico.Cargos.Llamadas + Historico.Cobro.Acumulado + Plan_A + Plan_D + Plan_E + Tipo_Contrato_mensual + Tipo_Contrato_anual,
+    #formula = Fugado ~ Edad + Casado + Numero.Dependientes + Recomendaciones.realizadas + Meses.como.Cliente + Servicio.Adicional.Antivirus + Servicio.Respaldo.en.la.Nube + Servicio.Soporte.Premium + Cobro.Mensual + Historico.Cargos.Llamadas + Historico.Cobro.Acumulado + Plan_A + Plan_D + Plan_E + Tipo_Contrato_mensual + Tipo_Contrato_anual,
     data = datos_entrenamiento_dos,
     family = binomial
   )
@@ -651,7 +796,7 @@ for (particion in 1:numero_partes) {
     newdata = datos_validacion_dos,
     type = "response"
   )
-  prediccion_auxiliar_dos <- ifelse(prediccion_auxiliar_dos < 0.50, 0, 1)
+  prediccion_auxiliar_dos <- ifelse(prediccion_auxiliar_dos < 0.44, 0, 1)
 
   # Se genera la matriz de confusión
   matriz_auxiliar_dos <- confusionMatrix(
@@ -743,11 +888,14 @@ variables_significativas_dos <- data.frame(lapply(
 #decisiones y Random forest
 
 view(variables_significativas_fono)
-variables_fono <- sort(variables_significativas_fono[4, 1])
+variables_fono <- sort(variables_significativas_fono[2:5, 3])
+# Con probabilidad 0.3
 view(variables_significativas_int)
-variables_int <- sort(variables_significativas_int[c(1:3), 1])
+variables_int <- sort(variables_significativas_int[c(1, 3:6), 1])
+# Con probabilidad 0.4
 view(variables_significativas_dos)
-variables_dos <- sort(variables_significativas_dos[c(3:7, 9:15), 1])
+variables_dos <- sort(variables_significativas_dos[c(1:6, 8:13), 7])
+# Con probabilidad 0.44
 maxima_variables_lg <- max(
   length(variables_fono),
   length(variables_int),
@@ -772,4 +920,14 @@ variables_significativas_lg_df <- tibble(
   solo_internet = variables_int,
   ambos_servicios = variables_dos
 )
+view(variables_significativas_lg_df)
+
+
+# Tablas importantes ------------------------------------------------------
+
+view(numero_fugados)
+view(resumen_telefono)
+view(resumen_internet)
+view(resumen_ambos)
+view(comparador_modelos)
 view(variables_significativas_lg_df)
