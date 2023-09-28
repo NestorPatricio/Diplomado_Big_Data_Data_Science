@@ -8,8 +8,8 @@ librerias <- c(
   "dplyr",
   "tibble",
   "tidyr",
-  #"ggplot2",
   "readxl",
+  "xlsx",
   "caret",
   "lintr"
 )
@@ -52,38 +52,13 @@ probab_fugado_si <- function(grupos, dataset) {
   return(x = sum(vector) / length(vector))
 }
 
-grafico_cajas <- function(dataset, variable_exo, variable_end = "Fugado") {
-  exogenas <- dataset[, variable_exo]
-  endogena <- dataset[, variable_end]
-  grafico <- ggplot(mapping = aes(y = exogenas, x = as.factor(endogena))) +
-    geom_boxplot() +
-    theme_minimal() +
-    labs(
-      x = variable_end,
-      y = variable_exo
-    )
-  return(grafico)
-}
-
-histograma <- function(dataset, variable_exo) {
-  exogenas <- dataset[, variable_exo]
-  grafico <- ggplot(mapping = aes(x = exogenas, y = after_stat(density))) +
-    geom_histogram() +
-    theme_minimal() +
-    labs(
-      x = variable_exo,
-      y = "Densidad de probabilidad"
-    )
-  return(grafico)
-}
-
 
 # Carga de datos y primera transformación ---------------------------------
 
-dataset_original <- tibble(read_xls(
+dataset_original <- read_xls(
   path = "proyecto_1_datos_fuga.xls",
   range = cell_cols(2:28)
-))
+)
 
 dataset_categorizado <- dataset_original %>%
   mutate(
@@ -252,14 +227,14 @@ numero_fugados <- tibble(
   Dataset = character(),
   Fugado_NO = integer(),
   Fugado_SI = integer(),
-  SI_veces_NO = numeric(),
+  Total_Dataset = integer(),
   Probab_Fugado = numeric()
 ) %>%
   add_row(
     Dataset = "Solo teléfono",
     Fugado_NO = summary(as.factor(dataset_telefono_sin_fuga$Fugado))[1],
     Fugado_SI = summary(as.factor(dataset_telefono_sin_fuga$Fugado))[2],
-    SI_veces_NO = round(x = Fugado_NO / Fugado_SI, digit = 2),
+    Total_Dataset = Fugado_NO + Fugado_SI,
     Probab_Fugado = round(
       x = (Fugado_SI * 100) / (Fugado_SI + Fugado_NO),
       digit = 2
@@ -269,7 +244,7 @@ numero_fugados <- tibble(
     Dataset = "Solo internet",
     Fugado_NO = summary(as.factor(dataset_internet_sin_fuga$Fugado))[1],
     Fugado_SI = summary(as.factor(dataset_internet_sin_fuga$Fugado))[2],
-    SI_veces_NO = round(x = Fugado_NO / Fugado_SI, digit = 2),
+    Total_Dataset = Fugado_NO + Fugado_SI,
     Probab_Fugado = round(
       x = (Fugado_SI * 100) / (Fugado_SI + Fugado_NO),
       digit = 2
@@ -279,87 +254,328 @@ numero_fugados <- tibble(
     Dataset = "Ambos servicios",
     Fugado_NO = summary(as.factor(dataset_ambos_sin_fuga$Fugado))[1],
     Fugado_SI = summary(as.factor(dataset_ambos_sin_fuga$Fugado))[2],
-    SI_veces_NO = round(x = Fugado_NO / Fugado_SI, digit = 2),
+    Total_Dataset = Fugado_NO + Fugado_SI,
     Probab_Fugado = round(
       x = (Fugado_SI * 100) / (Fugado_SI + Fugado_NO),
       digit = 2
     )
   )
 
-
 ##### Dataset sólo teléfono #####
-resumen_telefono <- tibble(
-  variable = names(dataset_telefono_sin_fuga),
-  promedio_NO = lapply(
-    X = dataset_telefono_sin_fuga[dataset_telefono_sin_fuga$Fugado == 0, ],
+dataset_telefono_categoricas <- dataset_tratado %>%
+  filter(`Servicio contratado` == 0) %>%
+  mutate(
+    Tipo_Contrato_más_largo = ifelse(
+      test = Tipo_Contrato_mensual == 0 & Tipo_Contrato_anual == 0,
+      yes = 1,
+      no = 0
+    ),
+    Plan_Ninguno = ifelse(
+      test = Plan_A == 0 & Plan_B == 0 & Plan_C == 0 & Plan_D == 0 &
+        Plan_E == 0,
+      yes = 1,
+      no = 0
+    )
+  ) %>%
+  select(
+    Sexo,
+    Casado,
+    `Multiples lineas`,
+    Plan_A,
+    Plan_B,
+    Plan_C,
+    Plan_D,
+    Plan_E,
+    Plan_Ninguno,
+    Tipo_Contrato_mensual,
+    Tipo_Contrato_anual,
+    Tipo_Contrato_más_largo,
+    Fugado
+  )
+
+resumen_telefono_categorico <- tibble(
+  Variable = names(dataset_telefono_categoricas[, -13]),
+  Probabilidad_Fugado_NO = lapply(
+    X = dataset_telefono_categoricas[
+      dataset_telefono_categoricas$Fugado == 0,
+      -13
+    ],
     FUN = mean
   ) %>%
-    unlist(),
-  promedio_SI = lapply(
-    X = dataset_telefono_sin_fuga[dataset_telefono_sin_fuga$Fugado == 1, ],
+    unlist() %>%
+    round(digit = 4),
+  Probabilidad_Fugado_SI = lapply(
+    X = dataset_telefono_categoricas[
+      dataset_telefono_categoricas$Fugado == 1,
+      -13
+    ],
     FUN = mean
   ) %>%
-    unlist(),
-  mediana_NO = lapply(
-    X = dataset_telefono_sin_fuga[dataset_telefono_sin_fuga$Fugado == 0, ],
+    unlist() %>%
+    round(digit = 4)
+)
+
+dataset_telefono_numericas <- dataset_categorizado %>%
+  filter(`Servicio contratado` == 0) %>%
+  select(
+    Edad,
+    `Numero Dependientes`,
+    `Recomendaciones realizadas`,
+    `Meses como Cliente`,
+    `Cargo Mensual LLamadas`,
+    `Cobro Mensual`,
+    `Historico de Devoluciones`,
+    `Historico Cargos Llamadas`,
+    `Historico Cobro Acumulado`,
+    Fugado
+  )
+
+resumen_telefono_numerico <- tibble(
+  Variable = names(dataset_telefono_numericas[, -10]),
+  Promedio_Fugado_NO = lapply(
+    X = dataset_telefono_numericas[dataset_telefono_numericas$Fugado == 0, -10],
+    FUN = mean
+  ) %>%
+    unlist() %>%
+    round(digit = 2),
+  Promedio_Fugado_SI = lapply(
+    X = dataset_telefono_numericas[dataset_telefono_numericas$Fugado == 1, -10],
+    FUN = mean
+  ) %>%
+    unlist() %>%
+    round(digit = 2),
+  Mediana_Fugado_NO = lapply(
+    X = dataset_telefono_numericas[dataset_telefono_numericas$Fugado == 0, -10],
     FUN = median
   ) %>%
     unlist(),
-  mediana_SI = lapply(
-    X = dataset_telefono_sin_fuga[dataset_telefono_sin_fuga$Fugado == 1, ],
+  Mediana_Fugado_SI = lapply(
+    X = dataset_telefono_numericas[dataset_telefono_numericas$Fugado == 1, -10],
     FUN = median
   ) %>%
     unlist()
+)
+
+resumen_telefono <- bind_rows(
+  resumen_telefono_categorico,
+  resumen_telefono_numerico
 )
 
 ##### Dataset sólo internet #####
-resumen_internet <- tibble(
-  variable = names(dataset_internet_sin_fuga),
-  promedio_NO = lapply(
-    X = dataset_internet_sin_fuga[dataset_internet_sin_fuga$Fugado == 0, ],
+dataset_internet_categoricas <- dataset_tratado %>%
+  filter(`Servicio contratado` == 1) %>%
+  mutate(
+    Tipo_Contrato_más_largo = ifelse(
+      test = Tipo_Contrato_mensual == 0 & Tipo_Contrato_anual == 0,
+      yes = 1,
+      no = 0
+    ),
+    Plan_Ninguno = ifelse(
+      test = Plan_A == 0 & Plan_B == 0 & Plan_C == 0 & Plan_D == 0 &
+        Plan_E == 0,
+      yes = 1,
+      no = 0
+    )
+  ) %>%
+  select(
+    Sexo,
+    Casado,
+    `Servicio Adicional Antivirus`,
+    `Servicio Respaldo en la Nube`,
+    `Seguro Proteccion Equipo`,
+    `Servicio Soporte Premium`,
+    `Usa Streaming TV`,
+    `Usa Streaming Peliculas`,
+    `Usa Streaming Musica`,
+    `Plan Ilimitado Datos`,
+    Plan_A,
+    Plan_B,
+    Plan_C,
+    Plan_D,
+    Plan_E,
+    Plan_Ninguno,
+    Tipo_Contrato_mensual,
+    Tipo_Contrato_anual,
+    Tipo_Contrato_más_largo,
+    Fugado
+  )
+
+resumen_internet_categorico <- tibble(
+  Variable = names(dataset_internet_categoricas[, -20]),
+  Probabilidad_Fugado_NO = lapply(
+    X = dataset_internet_categoricas[
+      dataset_internet_categoricas$Fugado == 0,
+      -20
+    ],
     FUN = mean
   ) %>%
-    unlist(),
-  promedio_SI = lapply(
-    X = dataset_internet_sin_fuga[dataset_internet_sin_fuga$Fugado == 1, ],
+    unlist() %>%
+    round(digit = 4),
+  Probabilidad_Fugado_SI = lapply(
+    X = dataset_internet_categoricas[
+      dataset_internet_categoricas$Fugado == 1,
+      -20
+    ],
     FUN = mean
   ) %>%
-    unlist(),
-  mediana_NO = lapply(
-    X = dataset_internet_sin_fuga[dataset_internet_sin_fuga$Fugado == 0, ],
+    unlist() %>%
+    round(digit = 4)
+)
+
+dataset_internet_numericas <- dataset_categorizado %>%
+  filter(`Servicio contratado` == 1) %>%
+  select(
+    Edad,
+    `Numero Dependientes`,
+    `Recomendaciones realizadas`,
+    `Meses como Cliente`,
+    `GB mensuales consumidos`,
+    `Cobro Mensual`,
+    `Historico de Devoluciones`,
+    `Historico Cargos extra datos`,
+    `Historico Cobro Acumulado`,
+    Fugado
+  )
+
+resumen_internet_numerico <- tibble(
+  Variable = names(dataset_internet_numericas[, -10]),
+  Promedio_Fugado_NO = lapply(
+    X = dataset_internet_numericas[dataset_internet_numericas$Fugado == 0, -10],
+    FUN = mean
+  ) %>%
+    unlist() %>%
+    round(digit = 2),
+  Promedio_Fugado_SI = lapply(
+    X = dataset_internet_numericas[dataset_internet_numericas$Fugado == 1, -10],
+    FUN = mean
+  ) %>%
+    unlist() %>%
+    round(digit = 2),
+  Mediana_Fugado_NO = lapply(
+    X = dataset_internet_numericas[dataset_internet_numericas$Fugado == 0, -10],
     FUN = median
   ) %>%
     unlist(),
-  mediana_SI = lapply(
-    X = dataset_internet_sin_fuga[dataset_internet_sin_fuga$Fugado == 1, ],
+  Mediana_Fugado_SI = lapply(
+    X = dataset_internet_numericas[dataset_internet_numericas$Fugado == 1, -10],
     FUN = median
   ) %>%
     unlist()
 )
 
+resumen_internet <- bind_rows(
+  resumen_internet_categorico,
+  resumen_internet_numerico
+)
+
 ##### Dataset ambos servicios #####
-resumen_ambos <- tibble(
-  variable = names(dataset_ambos_sin_fuga),
-  promedio_NO = lapply(
-    X = dataset_ambos_sin_fuga[dataset_ambos_sin_fuga$Fugado == 0, ],
+dataset_ambos_categoricas <- dataset_tratado %>%
+  filter(`Servicio contratado` == 2) %>%
+  mutate(
+    Tipo_Contrato_más_largo = ifelse(
+      test = Tipo_Contrato_mensual == 0 & Tipo_Contrato_anual == 0,
+      yes = 1,
+      no = 0
+    ),
+    Plan_Ninguno = ifelse(
+      test = Plan_A == 0 & Plan_B == 0 & Plan_C == 0 & Plan_D == 0 &
+        Plan_E == 0,
+      yes = 1,
+      no = 0
+    )
+  ) %>%
+  select(
+    Sexo,
+    Casado,
+    `Multiples lineas`,
+    `Servicio Adicional Antivirus`,
+    `Servicio Respaldo en la Nube`,
+    `Seguro Proteccion Equipo`,
+    `Servicio Soporte Premium`,
+    `Usa Streaming TV`,
+    `Usa Streaming Peliculas`,
+    `Usa Streaming Musica`,
+    `Plan Ilimitado Datos`,
+    Plan_A,
+    Plan_B,
+    Plan_C,
+    Plan_D,
+    Plan_E,
+    Plan_Ninguno,
+    Tipo_Contrato_mensual,
+    Tipo_Contrato_anual,
+    Tipo_Contrato_más_largo,
+    Fugado
+  )
+
+resumen_ambos_categorico <- tibble(
+  Variable = names(dataset_ambos_categoricas[, -21]),
+  Probabilidad_Fugado_NO = lapply(
+    X = dataset_ambos_categoricas[
+      dataset_ambos_categoricas$Fugado == 0,
+      -21
+    ],
     FUN = mean
   ) %>%
-    unlist(),
-  promedio_SI = lapply(
-    X = dataset_ambos_sin_fuga[dataset_ambos_sin_fuga$Fugado == 1, ],
+    unlist() %>%
+    round(digit = 4),
+  Probabilidad_Fugado_SI = lapply(
+    X = dataset_ambos_categoricas[
+      dataset_ambos_categoricas$Fugado == 1,
+      -21
+    ],
     FUN = mean
   ) %>%
-    unlist(),
-  mediana_NO = lapply(
-    X = dataset_ambos_sin_fuga[dataset_ambos_sin_fuga$Fugado == 0, ],
+    unlist() %>%
+    round(digit = 4)
+)
+
+dataset_ambos_numericas <- dataset_categorizado %>%
+  filter(`Servicio contratado` == 2) %>%
+  select(
+    Edad,
+    `Numero Dependientes`,
+    `Recomendaciones realizadas`,
+    `Meses como Cliente`,
+    `Cargo Mensual LLamadas`,
+    `GB mensuales consumidos`,
+    `Cobro Mensual`,
+    `Historico de Devoluciones`,
+    `Historico Cargos extra datos`,
+    `Historico Cargos Llamadas`,
+    `Historico Cobro Acumulado`,
+    Fugado
+  )
+
+resumen_ambos_numerico <- tibble(
+  Variable = names(dataset_ambos_numericas[, -12]),
+  Promedio_Fugado_NO = lapply(
+    X = dataset_ambos_numericas[dataset_ambos_numericas$Fugado == 0, -12],
+    FUN = mean
+  ) %>%
+    unlist() %>%
+    round(digit = 2),
+  Promedio_Fugado_SI = lapply(
+    X = dataset_ambos_numericas[dataset_ambos_numericas$Fugado == 1, -12],
+    FUN = mean
+  ) %>%
+    unlist() %>%
+    round(digit = 2),
+  Mediana_Fugado_NO = lapply(
+    X = dataset_ambos_numericas[dataset_ambos_numericas$Fugado == 0, -12],
     FUN = median
   ) %>%
     unlist(),
-  mediana_SI = lapply(
-    X = dataset_ambos_sin_fuga[dataset_ambos_sin_fuga$Fugado == 1, ],
+  Mediana_Fugado_SI = lapply(
+    X = dataset_ambos_numericas[dataset_ambos_numericas$Fugado == 1, -12],
     FUN = median
   ) %>%
     unlist()
+)
+
+resumen_ambos <- bind_rows(
+  resumen_ambos_categorico,
+  resumen_ambos_numerico
 )
 
 
@@ -451,17 +667,17 @@ sort(partes_ambos$prob_Fugado_SI)
 # Evaluación de modelos ---------------------------------------------------
 
 comparador_modelos <- tibble(
-  modelo = character(),
-  exactitud = numeric(),
-  sensibilidad = numeric(),
-  especificidad = numeric(),
-  dif_sen_esp = numeric(),
-  valor_F1 = numeric(),
-  verdaderos_positivos = integer(),
-  falsos_negativos = integer(),
-  falsos_positivos = integer(),
-  verdaderos_negativos = integer(),
-  observaciones = integer()
+  Modelo = character(),
+  Exactitud = numeric(),
+  Sensibilidad = numeric(),
+  Especificidad = numeric(),
+  Diferencia_SE = numeric(),
+  Valor_F1 = numeric(),
+  Verdaderos_Positivos = integer(),
+  Falsos_Negativos = integer(),
+  Falsos_Positivos = integer(),
+  Verdaderos_Negativos = integer(),
+  Observaciones = integer()
 )
 
 ##### Regresión logística teléfono #####
@@ -543,36 +759,35 @@ promedio_vn_fono <- round(suma_vn_fono / numero_partes)
 comparador_modelos <- bind_rows(
   comparador_modelos,
   tibble(
-    modelo = "Regresión logística teléfono",
-    exactitud = round(
+    Modelo = "Regresión logística teléfono",
+    Exactitud = round(
       x = (promedio_vp_fono + promedio_vn_fono) /
         (promedio_vp_fono + promedio_fn_fono + promedio_fp_fono +
            promedio_vn_fono),
       digit = 4
     ),
-    sensibilidad = round(
+    Sensibilidad = round(
       x = promedio_vp_fono / (promedio_vp_fono + promedio_fn_fono),
       digit = 4
     ),
-    especificidad = round(
+    Especificidad = round(
       x = promedio_vn_fono / (promedio_fp_fono + promedio_vn_fono),
       digit = 4
     ),
-    dif_sen_esp = abs(sensibilidad - especificidad),
-    valor_F1 = round(
+    Diferencia_SE = abs(Sensibilidad - Especificidad),
+    Valor_F1 = round(
       x = (2 * promedio_vp_fono) /
         (2 * promedio_vp_fono + promedio_fn_fono + promedio_fp_fono),
       digit = 4
     ),
-    verdaderos_positivos = promedio_vp_fono,
-    falsos_negativos = promedio_fn_fono,
-    falsos_positivos = promedio_fp_fono,
-    verdaderos_negativos = promedio_vn_fono,
-    observaciones = promedio_vp_fono + promedio_fn_fono + promedio_fp_fono +
+    Verdaderos_Positivos = promedio_vp_fono,
+    Falsos_Negativos = promedio_fn_fono,
+    falsos_Positivos = promedio_fp_fono,
+    Verdaderos_Negativos = promedio_vn_fono,
+    Observaciones = promedio_vp_fono + promedio_fn_fono + promedio_fp_fono +
       promedio_vn_fono
   )
 )
-view(comparador_modelos)
 
 # Variables no significativas para todos los modelos de regresión logística
 # Pr(> |z|) > 0.05
@@ -683,36 +898,35 @@ promedio_vn_int <- round(suma_vn_int / numero_partes)
 comparador_modelos <- bind_rows(
   comparador_modelos,
   tibble(
-    modelo = "Regresión logística internet",
-    exactitud = round(
+    Modelo = "Regresión logística internet",
+    Exactitud = round(
       x = (promedio_vp_int + promedio_vn_int) /
         (promedio_vp_int + promedio_fn_int + promedio_fp_int +
            promedio_vn_int),
       digit = 4
     ),
-    sensibilidad = round(
+    Sensibilidad = round(
       x = promedio_vp_int / (promedio_vp_int + promedio_fn_int),
       digit = 4
     ),
-    especificidad = round(
+    Especificidad = round(
       x = promedio_vn_int / (promedio_fp_int + promedio_vn_int),
       digit = 4
     ),
-    dif_sen_esp = abs(sensibilidad - especificidad),
-    valor_F1 = round(
+    Diferencia_SE = abs(Sensibilidad - Especificidad),
+    Valor_F1 = round(
       x = (2 * promedio_vp_int) /
         (2 * promedio_vp_int + promedio_fn_int + promedio_fp_int),
       digit = 4
     ),
-    verdaderos_positivos = promedio_vp_int,
-    falsos_negativos = promedio_fn_int,
-    falsos_positivos = promedio_fp_int,
-    verdaderos_negativos = promedio_vn_int,
-    observaciones = promedio_vp_int + promedio_fn_int + promedio_fp_int +
+    Verdaderos_Positivos = promedio_vp_int,
+    Falsos_Negativos = promedio_fn_int,
+    Falsos_Positivos = promedio_fp_int,
+    Verdaderos_Negativos = promedio_vn_int,
+    Observaciones = promedio_vp_int + promedio_fn_int + promedio_fp_int +
       promedio_vn_int
   )
 )
-view(comparador_modelos)
 
 # Variables no significativas para todos los modelos de regresión logística
 # Pr(> |z|) > 0.05
@@ -763,10 +977,13 @@ for (particion in 1:numero_partes) {
 
   # Se entrena el modelo de la iteración
   modelo_auxiliar_dos <- glm(
-    #formula = Fugado ~ .,
-    formula = Fugado ~ Edad + Casado + Numero.Dependientes + Recomendaciones.realizadas + Meses.como.Cliente + Cargo.Mensual.LLamadas + Servicio.Adicional.Antivirus + Servicio.Respaldo.en.la.Nube + Seguro.Proteccion.Equipo + Servicio.Soporte.Premium + Usa.Streaming.Peliculas + Usa.Streaming.Musica + Cobro.Mensual + Historico.Cargos.Llamadas + Historico.Cobro.Acumulado + Plan_A + Plan_D + Plan_E + Tipo_Contrato_mensual + Tipo_Contrato_anual,
-    #formula = Fugado ~ Edad + Casado + Numero.Dependientes + Recomendaciones.realizadas + Meses.como.Cliente + Cargo.Mensual.LLamadas + Servicio.Adicional.Antivirus + Servicio.Respaldo.en.la.Nube + Seguro.Proteccion.Equipo + Servicio.Soporte.Premium + Cobro.Mensual + Historico.Cargos.Llamadas + Historico.Cobro.Acumulado + Plan_A + Plan_D + Plan_E + Tipo_Contrato_mensual + Tipo_Contrato_anual,
-    #formula = Fugado ~ Edad + Casado + Numero.Dependientes + Recomendaciones.realizadas + Meses.como.Cliente + Servicio.Adicional.Antivirus + Servicio.Respaldo.en.la.Nube + Servicio.Soporte.Premium + Cobro.Mensual + Historico.Cargos.Llamadas + Historico.Cobro.Acumulado + Plan_A + Plan_D + Plan_E + Tipo_Contrato_mensual + Tipo_Contrato_anual,
+    formula = Fugado ~ Edad + Casado + Numero.Dependientes +
+      Recomendaciones.realizadas + Meses.como.Cliente + Cargo.Mensual.LLamadas +
+      Servicio.Adicional.Antivirus + Servicio.Respaldo.en.la.Nube +
+      Seguro.Proteccion.Equipo + Servicio.Soporte.Premium +
+      Usa.Streaming.Peliculas + Usa.Streaming.Musica + Cobro.Mensual +
+      Historico.Cargos.Llamadas + Historico.Cobro.Acumulado + Plan_A + Plan_D +
+      Plan_E + Tipo_Contrato_mensual + Tipo_Contrato_anual,
     data = datos_entrenamiento_dos,
     family = binomial
   )
@@ -822,36 +1039,35 @@ promedio_vn_dos <- round(suma_vn_dos / numero_partes)
 comparador_modelos <- bind_rows(
   comparador_modelos,
   tibble(
-    modelo = "Regresión logística ambos",
-    exactitud = round(
+    Modelo = "Regresión logística ambos",
+    Exactitud = round(
       x = (promedio_vp_dos + promedio_vn_dos) /
         (promedio_vp_dos + promedio_fn_dos + promedio_fp_dos +
            promedio_vn_dos),
       digit = 4
     ),
-    sensibilidad = round(
+    Sensibilidad = round(
       x = promedio_vp_dos / (promedio_vp_dos + promedio_fn_dos),
       digit = 4
     ),
-    especificidad = round(
+    Especificidad = round(
       x = promedio_vn_dos / (promedio_fp_dos + promedio_vn_dos),
       digit = 4
     ),
-    dif_sen_esp = abs(sensibilidad - especificidad),
-    valor_F1 = round(
+    Diferencia_SE = abs(Sensibilidad - Especificidad),
+    Valor_F1 = round(
       x = (2 * promedio_vp_dos) /
         (2 * promedio_vp_dos + promedio_fn_dos + promedio_fp_dos),
       digit = 4
     ),
-    verdaderos_positivos = promedio_vp_dos,
-    falsos_negativos = promedio_fn_dos,
-    falsos_positivos = promedio_fp_dos,
-    verdaderos_negativos = promedio_vn_dos,
-    observaciones = promedio_vp_dos + promedio_fn_dos + promedio_fp_dos +
+    Verdaderos_Positivos = promedio_vp_dos,
+    Falsos_Negativos = promedio_fn_dos,
+    Falsos_Positivos = promedio_fp_dos,
+    Verdaderos_Negativos = promedio_vn_dos,
+    Observaciones = promedio_vp_dos + promedio_fn_dos + promedio_fp_dos +
       promedio_vn_dos
   )
 )
-view(comparador_modelos)
 
 # Variables no significativas para todos los modelos de regresión logística
 # Pr(> |z|) > 0.05
@@ -889,13 +1105,11 @@ variables_significativas_dos <- data.frame(lapply(
 
 view(variables_significativas_fono)
 variables_fono <- sort(variables_significativas_fono[2:5, 3])
-# Con probabilidad 0.3
 view(variables_significativas_int)
 variables_int <- sort(variables_significativas_int[c(1, 3:6), 1])
-# Con probabilidad 0.4
 view(variables_significativas_dos)
 variables_dos <- sort(variables_significativas_dos[c(1:6, 8:13), 7])
-# Con probabilidad 0.44
+
 maxima_variables_lg <- max(
   length(variables_fono),
   length(variables_int),
@@ -916,18 +1130,62 @@ variables_dos <- c(
 )
 
 variables_significativas_lg_df <- tibble(
-  solo_telefono = variables_fono,
-  solo_internet = variables_int,
-  ambos_servicios = variables_dos
+  Solo_Telefono = variables_fono,
+  Solo_Internet = variables_int,
+  Ambos_Servicios = variables_dos
 )
-view(variables_significativas_lg_df)
 
 
 # Tablas importantes ------------------------------------------------------
 
+##### Visualización de las tablas #####
 view(numero_fugados)
+view(comparador_modelos)
+view(variables_significativas_lg_df)
 view(resumen_telefono)
 view(resumen_internet)
 view(resumen_ambos)
-view(comparador_modelos)
-view(variables_significativas_lg_df)
+
+##### Traspaso de las tablas a un archivo xlsx #####
+write.xlsx(
+  x = numero_fugados,
+  file = "Datos y Modelos.xlsx",
+  sheetName = "Cantidad_Fugados",
+  append = FALSE, # Se crea el archivo
+  showNA = FALSE
+)
+write.xlsx(
+  x = comparador_modelos,
+  file = "Datos y Modelos.xlsx",
+  sheetName = "Rendimiento_Regresión_Logística",
+  append = TRUE,
+  showNA = FALSE
+)
+write.xlsx(
+  x = variables_significativas_lg_df,
+  file = "Datos y Modelos.xlsx",
+  sheetName = "Variables_Significativas",
+  append = TRUE,
+  showNA = FALSE
+)
+write.xlsx(
+  x = resumen_telefono,
+  file = "Datos y Modelos.xlsx",
+  sheetName = "Dataset_Teléfono",
+  append = TRUE,
+  showNA = FALSE
+)
+write.xlsx(
+  x = resumen_internet,
+  file = "Datos y Modelos.xlsx",
+  sheetName = "Dataset_Internet",
+  append = TRUE,
+  showNA = FALSE
+)
+write.xlsx(
+  x = resumen_ambos,
+  file = "Datos y Modelos.xlsx",
+  sheetName = "Dataset_Ambos_Servicios",
+  append = TRUE,
+  showNA = FALSE
+)
