@@ -11,6 +11,7 @@ librerias <- c(
   "ggplot2",
   "patchwork",
   "readxl",
+  "xlsx",
   "caret",
   "rpart",
   "randomForest",
@@ -416,18 +417,18 @@ view(matriz_grupos)
 
 # Evaluación de modelos ---------------------------------------------------
 
-comparador_modelos <- tibble(
-  modelo = character(),
-  exactitud = numeric(),
-  sensibilidad = numeric(),
-  especificidad = numeric(),
-  dif_sen_esp = numeric(),
-  valor_F1 = numeric(),
-  verdaderos_positivos = integer(),
-  falsos_negativos = integer(),
-  falsos_positivos = integer(),
-  verdaderos_negativos = integer(),
-  observaciones = integer(),
+comparador_modelos_1 <- tibble(
+  Modelo = character(),
+  Exactitud = numeric(),
+  Sensibilidad = numeric(),
+  Especificidad = numeric(),
+  Diferencia_SE = numeric(),
+  Valor_F1 = numeric(),
+  Verdaderos_Positivos = integer(),
+  Falsos_Negativos = integer(),
+  Falsos_Positivos = integer(),
+  Verdaderos_Negativos = integer(),
+  Observaciones = integer(),
   .rows = 0
 )
 
@@ -505,38 +506,37 @@ promedio_fp_rl <- round(suma_fp_rl / numero_partes)
 promedio_vn_rl <- round(suma_vn_rl / numero_partes)
 
 # Se insertan en la tabla para comparar los modelos
-comparador_modelos <- bind_rows(
-  comparador_modelos,
+comparador_modelos_1 <- bind_rows(
+  comparador_modelos_1,
   tibble(
-    modelo = "Regresión logística",
-    exactitud = round(
+    Modelo = "Regresión logística",
+    Exactitud = round(
       x = (promedio_vp_rl + promedio_vn_rl) /
         (promedio_vp_rl + promedio_fn_rl + promedio_fp_rl + promedio_vn_rl),
       digit = 4
     ),
-    sensibilidad = round(
+    Sensibilidad = round(
       x = promedio_vp_rl / (promedio_vp_rl + promedio_fn_rl),
       digit = 4
     ),
-    especificidad = round(
+    Especificidad = round(
       x = promedio_vn_rl / (promedio_fp_rl + promedio_vn_rl),
       digit = 4
     ),
-    dif_sen_esp = abs(sensibilidad - especificidad),
-    valor_F1 = round(
+    Diferencia_SE = abs(Sensibilidad - Especificidad),
+    Valor_F1 = round(
       x = (2 * promedio_vp_rl) /
         (2 * promedio_vp_rl + promedio_fn_rl + promedio_fp_rl),
       digit = 4
     ),
-    verdaderos_positivos = promedio_vp_rl,
-    falsos_negativos = promedio_fn_rl,
-    falsos_positivos = promedio_fp_rl,
-    verdaderos_negativos = promedio_vn_rl,
-    observaciones = promedio_vp_rl + promedio_fn_rl + promedio_fp_rl +
+    Verdaderos_Positivos = promedio_vp_rl,
+    Falsos_Negativos = promedio_fn_rl,
+    Falsos_Positivos = promedio_fp_rl,
+    Verdaderos_Negativos = promedio_vn_rl,
+    Observaciones = promedio_vp_rl + promedio_fn_rl + promedio_fp_rl +
       promedio_vn_rl
   )
 )
-view(comparador_modelos)
 
 # Variables no significativas para todos los modelos de regresión logística
 # Pr(> |z|) > 0.05
@@ -632,41 +632,50 @@ promedio_fp_ad <- round(suma_fp_ad / numero_partes)
 promedio_vn_ad <- round(suma_vn_ad / numero_partes)
 
 # Se insertan en la tabla para comparar los modelos
-comparador_modelos <- bind_rows(
-  comparador_modelos,
+comparador_modelos_1 <- bind_rows(
+  comparador_modelos_1,
   tibble(
-    modelo = "Árbol de decisiones",
-    exactitud = round(
+    Modelo = "Árbol de decisiones",
+    Exactitud = round(
       x = (promedio_vp_ad + promedio_vn_ad) /
         (promedio_vp_ad + promedio_fn_ad + promedio_fp_ad + promedio_vn_ad),
       digit = 4
     ),
-    sensibilidad = round(
+    Sensibilidad = round(
       x = promedio_vp_ad / (promedio_vp_ad + promedio_fn_ad),
       digit = 4
     ),
-    especificidad = round(
+    Especificidad = round(
       x = promedio_vn_ad / (promedio_fp_ad + promedio_vn_ad),
       digit = 4
     ),
-    dif_sen_esp = abs(sensibilidad - especificidad),
-    valor_F1 = round(
+    Diferencia_SE = abs(Sensibilidad - Especificidad),
+    Valor_F1 = round(
       x = (2 * promedio_vp_ad) /
         (2 * promedio_vp_ad + promedio_fn_ad + promedio_fp_ad),
       digit = 4
     ),
-    verdaderos_positivos = promedio_vp_ad,
-    falsos_negativos = promedio_fn_ad,
-    falsos_positivos = promedio_fp_ad,
-    verdaderos_negativos = promedio_vn_ad,
-    observaciones = promedio_vp_ad + promedio_fn_ad + promedio_fp_ad +
+    Verdaderos_Positivos = promedio_vp_ad,
+    Falsos_Negativos = promedio_fn_ad,
+    Falsos_Positivos = promedio_fp_ad,
+    Verdaderos_Negativos = promedio_vn_ad,
+    Observaciones = promedio_vp_ad + promedio_fn_ad + promedio_fp_ad +
       promedio_vn_ad
   )
 )
-view(comparador_modelos)
 
 # Variables significativas para todos los modelos de árboles de decisiones
-variables_significativas_ad <- as.data.frame(variables_significativas_ad)
+maximo_variables_significativas_ad <- lapply(
+  X = variables_significativas_ad,
+  FUN = length
+) %>%
+  unlist() %>%
+  max()
+variables_significativas_ad <- data.frame(lapply(
+  X = variables_significativas_ad,
+  FUN = `length<-`,
+  maximo_variables_significativas_ad
+))
 
 ##### Random forest #####
 # Se declaran las variables que guardarán la suma
@@ -730,38 +739,37 @@ promedio_fp_rf <- round(suma_fp_rf / numero_partes)
 promedio_vn_rf <- round(suma_vn_rf / numero_partes)
 
 # Se insertan en la tabla para comparar los modelos
-comparador_modelos <- bind_rows(
-  comparador_modelos,
+comparador_modelos_1 <- bind_rows(
+  comparador_modelos_1,
   tibble(
-    modelo = "Random forest",
-    exactitud = round(
+    Modelo = "Random forest",
+    Exactitud = round(
       x = (promedio_vp_rf + promedio_vn_rf) /
         (promedio_vp_rf + promedio_fn_rf + promedio_fp_rf + promedio_vn_rf),
       digit = 4
     ),
-    sensibilidad = round(
+    Sensibilidad = round(
       x = promedio_vp_rf / (promedio_vp_rf + promedio_fn_rf),
       digit = 4
     ),
-    especificidad = round(
+    Especificidad = round(
       x = promedio_vn_rf / (promedio_fp_rf + promedio_vn_rf),
       digit = 4
     ),
-    dif_sen_esp = abs(sensibilidad - especificidad),
-    valor_F1 = round(
+    Diferencia_SE = abs(Sensibilidad - Especificidad),
+    Valor_F1 = round(
       x = (2 * promedio_vp_rf) /
         (2 * promedio_vp_rf + promedio_fn_rf + promedio_fp_rf),
       digit = 4
     ),
-    verdaderos_positivos = promedio_vp_rf,
-    falsos_negativos = promedio_fn_rf,
-    falsos_positivos = promedio_fp_rf,
-    verdaderos_negativos = promedio_vn_rf,
-    observaciones = promedio_vp_rf + promedio_fn_rf + promedio_fp_rf +
+    Verdaderos_Positivos = promedio_vp_rf,
+    Falsos_Negativos = promedio_fn_rf,
+    Falsos_Positivos = promedio_fp_rf,
+    Verdaderos_Negativos = promedio_vn_rf,
+    Observaciones = promedio_vp_rf + promedio_fn_rf + promedio_fp_rf +
       promedio_vn_rf
   )
 )
-view(comparador_modelos)
 
 # Variables significativas para todos los modelos de random forest
 variables_significativas_rf <- as.data.frame(variables_significativas_rf)
@@ -773,7 +781,7 @@ variables_significativas_rf <- as.data.frame(variables_significativas_rf)
 view(variables_significativas_rl)
 variables_rl <- sort(variables_significativas_rl[c(2:9, 11:13), 1])
 view(variables_significativas_ad)
-variables_ad <- sort(variables_significativas_ad[c(1:12, 16, 18), 1])
+variables_ad <- sort(variables_significativas_ad[c(1:12, 16:18), 1])
 view(variables_significativas_rf)
 variables_rf <- sort(variables_significativas_rf[c(1:13), 1])
 maxima_variables <- max(
@@ -804,7 +812,7 @@ view(variables_significativas_df)
 
 # Variables exógenas comunes a todos los modelos
 variables_significativas_1 <- unname(unlist(
-  variables_significativas_df[c(2:5, 7:9), 1]
+  variables_significativas_df[c(3:5, 6:11), 1]
 ))
 
 # Se prueban los distintos valores de K
@@ -919,23 +927,22 @@ for (valor_k in 1:valores_k) {
 view(comparador_knn_1)
 
 # Se insertan en la tabla para comparar los modelos
-comparador_modelos <- bind_rows(
-  comparador_modelos,
+comparador_modelos_1 <- bind_rows(
+  comparador_modelos_1,
   tibble(
-    modelo = paste(comparador_knn_1$valor_k[[1]], "vecinos cercanos"),
-    exactitud = comparador_knn_1$exactitud[[1]],
-    sensibilidad = comparador_knn_1$sensibilidad[[1]],
-    especificidad = comparador_knn_1$especificidad[[1]],
-    dif_sen_esp = abs(sensibilidad - especificidad),
-    valor_F1 = comparador_knn_1$valor_F1[[1]],
-    verdaderos_positivos = comparador_knn_1$verdaderos_positivos[[1]],
-    falsos_negativos = comparador_knn_1$falsos_negativos[[1]],
-    falsos_positivos = comparador_knn_1$falsos_positivos[[1]],
-    verdaderos_negativos = comparador_knn_1$verdaderos_negativos[[1]],
-    observaciones = comparador_knn_1$observaciones[[1]]
+    Modelo = paste(comparador_knn_1$valor_k[[1]], "vecinos cercanos"),
+    Exactitud = comparador_knn_1$exactitud[[1]],
+    Sensibilidad = comparador_knn_1$sensibilidad[[1]],
+    Especificidad = comparador_knn_1$especificidad[[1]],
+    Diferencia_SE = abs(Sensibilidad - Especificidad),
+    Valor_F1 = comparador_knn_1$valor_F1[[1]],
+    Verdaderos_Positivos = comparador_knn_1$verdaderos_positivos[[1]],
+    Falsos_Negativos = comparador_knn_1$falsos_negativos[[1]],
+    Falsos_Positivos = comparador_knn_1$falsos_positivos[[1]],
+    Verdaderos_Negativos = comparador_knn_1$verdaderos_negativos[[1]],
+    Observaciones = comparador_knn_1$observaciones[[1]]
   )
 )
-view(comparador_modelos)
 
 ##### Support Vector Machine #####
 # Se declaran las variables que guardarán la suma
@@ -993,38 +1000,37 @@ promedio_fp_svm <- round(suma_fp_svm / numero_partes)
 promedio_vn_svm <- round(suma_vn_svm / numero_partes)
 
 # Se insertan en la tabla para comparar los modelos
-comparador_modelos <- bind_rows(
-  comparador_modelos,
+comparador_modelos_1 <- bind_rows(
+  comparador_modelos_1,
   tibble(
-    modelo = "Support vector machines",
-    exactitud = round(
+    Modelo = "Support vector machines",
+    Exactitud = round(
       x = (promedio_vp_svm + promedio_vn_svm) /
         (promedio_vp_svm + promedio_fn_svm + promedio_fp_svm + promedio_vn_svm),
       digit = 4
     ),
-    sensibilidad = round(
+    Sensibilidad = round(
       x = promedio_vp_svm / (promedio_vp_svm + promedio_fn_svm),
       digit = 4
     ),
-    especificidad = round(
+    Especificidad = round(
       x = promedio_vn_svm / (promedio_fp_svm + promedio_vn_svm),
       digit = 4
     ),
-    dif_sen_esp = abs(sensibilidad - especificidad),
-    valor_F1 = round(
+    Diferencia_SE = abs(Sensibilidad - Especificidad),
+    Valor_F1 = round(
       x = (2 * promedio_vp_svm) /
         (2 * promedio_vp_svm + promedio_fn_svm + promedio_fp_svm),
       digit = 4
     ),
-    verdaderos_positivos = promedio_vp_svm,
-    falsos_negativos = promedio_fn_svm,
-    falsos_positivos = promedio_fp_svm,
-    verdaderos_negativos = promedio_vn_svm,
-    observaciones = promedio_vp_svm + promedio_fn_svm + promedio_fp_svm +
+    Verdaderos_Positivos = promedio_vp_svm,
+    Falsos_Negativos = promedio_fn_svm,
+    Falsos_Positivos = promedio_fp_svm,
+    Verdaderos_Negativos = promedio_vn_svm,
+    Observaciones = promedio_vp_svm + promedio_fn_svm + promedio_fp_svm +
       promedio_vn_svm
   )
 )
-view(comparador_modelos)
 
 ##### Naive Bayes Gaussiano #####
 # Se declaran las variables que guardarán la suma
@@ -1079,38 +1085,37 @@ promedio_fp_nb <- round(suma_fp_nb / numero_partes)
 promedio_vn_nb <- round(suma_vn_nb / numero_partes)
 
 # Se insertan en la tabla para comparar los modelos
-comparador_modelos <- bind_rows(
-  comparador_modelos,
+comparador_modelos_1 <- bind_rows(
+  comparador_modelos_1,
   tibble(
-    modelo = "Naive Bayes Gaussiano",
-    exactitud = round(
+    Modelo = "Naive Bayes Gaussiano",
+    Exactitud = round(
       x = (promedio_vp_nb + promedio_vn_nb) /
         (promedio_vp_nb + promedio_fn_nb + promedio_fp_nb + promedio_vn_nb),
       digit = 4
     ),
-    sensibilidad = round(
+    Sensibilidad = round(
       x = promedio_vp_nb / (promedio_vp_nb + promedio_fn_nb),
       digit = 4
     ),
-    especificidad = round(
+    Especificidad = round(
       x = promedio_vn_nb / (promedio_fp_nb + promedio_vn_nb),
       digit = 4
     ),
-    dif_sen_esp = abs(sensibilidad - especificidad),
-    valor_F1 = round(
+    Diferencia_SE = abs(Sensibilidad - Especificidad),
+    Valor_F1 = round(
       x = (2 * promedio_vp_nb) /
         (2 * promedio_vp_nb + promedio_fn_nb + promedio_fp_nb),
       digit = 4
     ),
-    verdaderos_positivos = promedio_vp_nb,
-    falsos_negativos = promedio_fn_nb,
-    falsos_positivos = promedio_fp_nb,
-    verdaderos_negativos = promedio_vn_nb,
-    observaciones = promedio_vp_nb + promedio_fn_nb + promedio_fp_nb +
+    Verdaderos_Positivos = promedio_vp_nb,
+    Falsos_Negativos = promedio_fn_nb,
+    Falsos_Positivos = promedio_fp_nb,
+    Verdaderos_Negativos = promedio_vn_nb,
+    Observaciones = promedio_vp_nb + promedio_fn_nb + promedio_fp_nb +
       promedio_vn_nb
   )
 )
-view(comparador_modelos)
 
 ##### Redes neuronales artificiales #####
 # Se declaran las variables que guardarán la suma
@@ -1167,44 +1172,56 @@ promedio_fp_nn <- round(suma_fp_nn / numero_partes)
 promedio_vn_nn <- round(suma_vn_nn / numero_partes)
 
 # Se insertan en la tabla para comparar los modelos
-comparador_modelos <- bind_rows(
-  comparador_modelos,
+comparador_modelos_1 <- bind_rows(
+  comparador_modelos_1,
   tibble(
-    modelo = "Red neuronal (1 x 31)",
-    exactitud = round(
+    Modelo = "Red neuronal (1 x 31)",
+    Exactitud = round(
       x = (promedio_vp_nn + promedio_vn_nn) /
         (promedio_vp_nn + promedio_fn_nn + promedio_fp_nn + promedio_vn_nn),
       digit = 4
     ),
-    sensibilidad = round(
+    Sensibilidad = round(
       x = promedio_vp_nn / (promedio_vp_nn + promedio_fn_nn),
       digit = 4
     ),
-    especificidad = round(
+    Especificidad = round(
       x = promedio_vn_nn / (promedio_fp_nn + promedio_vn_nn),
       digit = 4
     ),
-    dif_sen_esp = abs(sensibilidad - especificidad),
-    valor_F1 = round(
+    Diferencia_SE = abs(Sensibilidad - Especificidad),
+    Valor_F1 = round(
       x = (2 * promedio_vp_nn) /
         (2 * promedio_vp_nn + promedio_fn_nn + promedio_fp_nn),
       digit = 4
     ),
-    verdaderos_positivos = promedio_vp_nn,
-    falsos_negativos = promedio_fn_nn,
-    falsos_positivos = promedio_fp_nn,
-    verdaderos_negativos = promedio_vn_nn,
-    observaciones = promedio_vp_nn + promedio_fn_nn + promedio_fp_nn +
+    Verdaderos_Positivos = promedio_vp_nn,
+    Falsos_Negativos = promedio_fn_nn,
+    Falsos_Positivos = promedio_fp_nn,
+    Verdaderos_Negativos = promedio_vn_nn,
+    Observaciones = promedio_vp_nn + promedio_fn_nn + promedio_fp_nn +
       promedio_vn_nn
   )
 )
-view(comparador_modelos)
 
 
+# Tablas importantes ------------------------------------------------------
+
+##### Visualización de las tablas #####
+view(comparador_modelos_1)
+
+##### Traspaso de las tablas a un archivo xlsx #####
+write.xlsx(
+  x = comparador_modelos_1,
+  file = "Datos y Modelos.xlsx",
+  sheetName = "Rendimiento_Modelos",
+  append = TRUE, # Se crea el archivo
+  showNA = FALSE
+)
 
 # Experimentos ------------------------------------------------------------
 
-##### Support Vector Machine #####
+##### Support Vector Machine 2 #####
 # Se declaran las variables que guardarán la suma
 suma_vp_svm2 <- 0
 suma_fn_svm2 <- 0
@@ -1277,36 +1294,36 @@ promedio_fp_svm2 <- round(suma_fp_svm2 / numero_partes)
 promedio_vn_svm2 <- round(suma_vn_svm2 / numero_partes)
 
 # Se insertan en la tabla para comparar los modelos
-comparador_modelos <- bind_rows(
-  comparador_modelos,
+comparador_modelos_1 <- bind_rows(
+  comparador_modelos_1,
   tibble(
-    modelo = "Support vector machines 2",
-    exactitud = round(
+    Modelo = "Support vector machines 2",
+    Exactitud = round(
       x = (promedio_vp_svm2 + promedio_vn_svm2) /
         (promedio_vp_svm + promedio_fn_svm2 + promedio_fp_svm2 +
            promedio_vn_svm2),
       digit = 4
     ),
-    sensibilidad = round(
+    Sensibilidad = round(
       x = promedio_vp_svm2 / (promedio_vp_svm2 + promedio_fn_svm2),
       digit = 4
     ),
-    especificidad = round(
+    Especificidad = round(
       x = promedio_vn_svm2 / (promedio_fp_svm2 + promedio_vn_svm2),
       digit = 4
     ),
-    dif_sen_esp = abs(sensibilidad - especificidad),
-    valor_F1 = round(
+    Diferencia_SE = abs(Sensibilidad - Especificidad),
+    Valor_F1 = round(
       x = (2 * promedio_vp_svm2) /
         (2 * promedio_vp_svm2 + promedio_fn_svm2 + promedio_fp_svm2),
       digit = 4
     ),
-    verdaderos_positivos = promedio_vp_svm2,
-    falsos_negativos = promedio_fn_svm2,
-    falsos_positivos = promedio_fp_svm2,
-    verdaderos_negativos = promedio_vn_svm2,
-    observaciones = promedio_vp_svm2 + promedio_fn_svm2 + promedio_fp_svm2 +
+    Verdaderos_Positivos = promedio_vp_svm2,
+    Falsos_Negativos = promedio_fn_svm2,
+    Falsos_Positivos = promedio_fp_svm2,
+    Verdaderos_Negativos = promedio_vn_svm2,
+    Observaciones = promedio_vp_svm2 + promedio_fn_svm2 + promedio_fp_svm2 +
       promedio_vn_svm2
   )
 )
-view(comparador_modelos)
+view(comparador_modelos_1)

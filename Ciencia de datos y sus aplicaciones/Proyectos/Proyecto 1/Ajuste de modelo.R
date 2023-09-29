@@ -666,7 +666,7 @@ sort(partes_ambos$prob_Fugado_SI)
 
 # Evaluación de modelos ---------------------------------------------------
 
-comparador_modelos <- tibble(
+comparador_modelos_2 <- tibble(
   Modelo = character(),
   Exactitud = numeric(),
   Sensibilidad = numeric(),
@@ -756,8 +756,8 @@ promedio_fp_fono <- round(suma_fp_fono / numero_partes)
 promedio_vn_fono <- round(suma_vn_fono / numero_partes)
 
 # Se insertan en la tabla para comparar los modelos
-comparador_modelos <- bind_rows(
-  comparador_modelos,
+comparador_modelos_2 <- bind_rows(
+  comparador_modelos_2,
   tibble(
     Modelo = "Regresión logística teléfono",
     Exactitud = round(
@@ -895,8 +895,8 @@ promedio_fp_int <- round(suma_fp_int / numero_partes)
 promedio_vn_int <- round(suma_vn_int / numero_partes)
 
 # Se insertan en la tabla para comparar los modelos
-comparador_modelos <- bind_rows(
-  comparador_modelos,
+comparador_modelos_2 <- bind_rows(
+  comparador_modelos_2,
   tibble(
     Modelo = "Regresión logística internet",
     Exactitud = round(
@@ -1036,8 +1036,8 @@ promedio_fp_dos <- round(suma_fp_dos / numero_partes)
 promedio_vn_dos <- round(suma_vn_dos / numero_partes)
 
 # Se insertan en la tabla para comparar los modelos
-comparador_modelos <- bind_rows(
-  comparador_modelos,
+comparador_modelos_2 <- bind_rows(
+  comparador_modelos_2,
   tibble(
     Modelo = "Regresión logística ambos",
     Exactitud = round(
@@ -1140,7 +1140,7 @@ variables_significativas_lg_df <- tibble(
 
 ##### Visualización de las tablas #####
 view(numero_fugados)
-view(comparador_modelos)
+view(comparador_modelos_2)
 view(variables_significativas_lg_df)
 view(resumen_telefono)
 view(resumen_internet)
@@ -1155,7 +1155,7 @@ write.xlsx(
   showNA = FALSE
 )
 write.xlsx(
-  x = comparador_modelos,
+  x = comparador_modelos_2,
   file = "Datos y Modelos.xlsx",
   sheetName = "Rendimiento_Regresión_Logística",
   append = TRUE,
@@ -1186,6 +1186,90 @@ write.xlsx(
   x = resumen_ambos,
   file = "Datos y Modelos.xlsx",
   sheetName = "Dataset_Ambos_Servicios",
+  append = TRUE,
+  showNA = FALSE
+)
+
+
+# Experimentos ------------------------------------------------------------
+
+dataset_telefono_categoricas2 <- tibble(
+  Variable = character(),
+  Probabilidad_Fuga = numeric()
+)
+for (variable in names(dataset_telefono_categoricas)) {
+  if (variable != "Fugado") {
+    for (valor in c(0, 1)) {
+      vector <- dataset_telefono_categoricas[
+        dataset_telefono_categoricas[, variable] == valor,
+        "Fugado"
+      ] %>%  unlist()
+      probabilidad <- round(x = mean(vector) * 100, digit = 2)
+      dataset_telefono_categoricas2 <- bind_rows(
+        dataset_telefono_categoricas2,
+        tibble(
+          Variable = paste(variable, valor),
+          Probabilidad_Fuga = probabilidad
+        )
+      )
+    }
+  }
+}
+
+dataset_internet_categoricas2 <- tibble(
+  Variable = character(),
+  Probabilidad_Fuga = numeric()
+)
+for (variable in names(dataset_internet_categoricas)) {
+  if (variable != "Fugado") {
+    for (valor in c(0, 1)) {
+      vector <- dataset_internet_categoricas[
+        dataset_internet_categoricas[, variable] == valor,
+        "Fugado"
+      ] %>%  unlist()
+      probabilidad <- round(x = mean(vector) * 100, digit = 2)
+      dataset_internet_categoricas2 <- bind_rows(
+        dataset_internet_categoricas2,
+        tibble(
+          Variable = paste(variable, valor),
+          Probabilidad_Fuga = probabilidad
+        )
+      )
+    }
+  }
+}
+
+dataset_ambos_categoricas2 <- tibble(
+  Variable = character(),
+  Probabilidad_Fuga = numeric()
+)
+for (variable in names(dataset_ambos_categoricas)) {
+  if (variable != "Fugado") {
+    for (valor in c(0, 1)) {
+      vector <- dataset_ambos_categoricas[
+        dataset_ambos_categoricas[, variable] == valor,
+        "Fugado"
+      ] %>%  unlist()
+      probabilidad <- round(x = mean(vector) * 100, digit = 2)
+      dataset_ambos_categoricas2 <- bind_rows(
+        dataset_ambos_categoricas2,
+        tibble(
+          Variable = paste(variable, valor),
+          Probabilidad_Fuga = probabilidad
+        )
+      )
+    }
+  }
+}
+
+view(dataset_telefono_categoricas2)
+view(dataset_internet_categoricas2)
+view(dataset_ambos_categoricas2)
+
+write.xlsx(
+  x = dataset_ambos_categoricas2,
+  file = "Datos y Modelos.xlsx",
+  sheetName = "Dataset_Ambos_Servicios_2",
   append = TRUE,
   showNA = FALSE
 )
