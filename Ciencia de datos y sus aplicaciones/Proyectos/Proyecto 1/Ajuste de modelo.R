@@ -1205,10 +1205,19 @@ for (variable in names(dataset_telefono_categoricas)) {
         "Fugado"
       ] %>%  unlist()
       probabilidad <- round(x = mean(vector) * 100, digit = 2)
+      if (variable == "Sexo" & valor == 0) {
+        texto <- "Mujer"
+      } else if (variable == "Sexo" & valor == 1) {
+        texto <- "Hombre"
+      } else if (valor == 0) {
+        texto <- paste("No", variable)
+      } else {
+        texto <- paste("Si", variable)
+      }
       dataset_telefono_categoricas2 <- bind_rows(
         dataset_telefono_categoricas2,
         tibble(
-          Variable = paste(variable, valor),
+          Variable = texto,
           Probabilidad_Fuga = probabilidad
         )
       )
@@ -1228,10 +1237,19 @@ for (variable in names(dataset_internet_categoricas)) {
         "Fugado"
       ] %>%  unlist()
       probabilidad <- round(x = mean(vector) * 100, digit = 2)
+      if (variable == "Sexo" & valor == 0) {
+        texto <- "Mujer"
+      } else if (variable == "Sexo" & valor == 1) {
+        texto <- "Hombre"
+      } else if (valor == 0) {
+        texto <- paste("No", variable)
+      } else {
+        texto <- paste("Si", variable)
+      }
       dataset_internet_categoricas2 <- bind_rows(
         dataset_internet_categoricas2,
         tibble(
-          Variable = paste(variable, valor),
+          Variable = texto,
           Probabilidad_Fuga = probabilidad
         )
       )
@@ -1251,10 +1269,19 @@ for (variable in names(dataset_ambos_categoricas)) {
         "Fugado"
       ] %>%  unlist()
       probabilidad <- round(x = mean(vector) * 100, digit = 2)
+      if (variable == "Sexo" & valor == 0) {
+        texto <- "Mujer"
+      } else if (variable == "Sexo" & valor == 1) {
+        texto <- "Hombre"
+      } else if (valor == 0) {
+        texto <- paste("No", variable)
+      } else {
+        texto <- paste("Si", variable)
+      }
       dataset_ambos_categoricas2 <- bind_rows(
         dataset_ambos_categoricas2,
         tibble(
-          Variable = paste(variable, valor),
+          Variable = texto,
           Probabilidad_Fuga = probabilidad
         )
       )
@@ -1266,10 +1293,3 @@ view(dataset_telefono_categoricas2)
 view(dataset_internet_categoricas2)
 view(dataset_ambos_categoricas2)
 
-write.xlsx(
-  x = dataset_ambos_categoricas2,
-  file = "Datos y Modelos.xlsx",
-  sheetName = "Dataset_Ambos_Servicios_2",
-  append = TRUE,
-  showNA = FALSE
-)
