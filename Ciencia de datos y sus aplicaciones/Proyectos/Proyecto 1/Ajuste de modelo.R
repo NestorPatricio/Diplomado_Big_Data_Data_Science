@@ -965,6 +965,7 @@ suma_vn_dos <- 0
 
 variables_no_significativas_dos <- list()
 variables_significativas_dos <- list()
+modelos_dos <- list()
 
 for (particion in 1:numero_partes) {
   # Se generan los datasets de entrenamiento y validación de cada iteración
@@ -992,6 +993,9 @@ for (particion in 1:numero_partes) {
   significancia_variables <- coef(summary(modelo_auxiliar_dos)) %>%
     as_tibble(rownames = "id") %>%
     arrange(`Pr(>|z|)`)
+
+  # Se guardan los modelos para evaluarlos después
+  modelos_dos[[nombre_part]] <- modelo_auxiliar_dos
 
   # Se obtienen las variables que no aportan al modelo significativamente
   nombre_part <- paste("Fold", as.character(particion))
@@ -1293,3 +1297,5 @@ view(dataset_telefono_categoricas2)
 view(dataset_internet_categoricas2)
 view(dataset_ambos_categoricas2)
 
+# Se usa el modelo de la séptima iteración como estándar para presentar
+modelos_dos$`Fold 7`
