@@ -7,8 +7,19 @@
 librerias <- c(
   "dplyr",
   "tibble",
+  "ggplot2",
   "readxl",
   "xlsx",
+  "factoextra", # Visualización de PCA
+  "clustercrit",
+  #"cluster", # Cálculo de silueta
+  #"caret",# Matriz de comparación
+  #"mclust",# Mixture-Gaussian model
+  #"dbscan", # DBSCAN  model
+  #"dendextend",# Evaluar comparador "FM_index"
+  #"clevr",# Evaluar comparador "v_measure" y "adj_rand_index"
+  #"rgl", # Visualización en 3D
+  #"dendextend", # Otro modelo que no recuerdo
   "lintr"
 )
 for (libreria in librerias) {
@@ -33,7 +44,7 @@ if (Sys.info()["sysname"] == "Windows") {
 }
 
 # Se ejecuta el linter de R para evaluar el estilo del script
-lint(filename = "Tratamiento de la información.R")
+#lint(filename = "Tratamiento de la información.R")
 
 
 # Funciones ---------------------------------------------------------------
@@ -43,11 +54,6 @@ normalizacion <- function(valores) {
   minimo <-  min(valores, na.rm = TRUE)
   maximo <- max(valores, na.rm = TRUE)
   return((valores - minimo) / (maximo - minimo))
-}
-
-probab_fugado_si <- function(grupos) {
-  vector <- dataset_categorizado$Fugado[grupos]
-  return(x = sum(vector) / length(vector))
 }
 
 
@@ -112,7 +118,7 @@ dataset_ponderado <- dataset_categorizado %>%
   lapply(FUN = normalizacion) %>%
   as.data.frame() %>%
   mutate(
-    AL_empresario = AL_empresario/ 7,
+    AL_empresario = AL_empresario / 7,
     AL_gerente = AL_gerente / 7,
     AL_obrero = AL_obrero / 7,
     AL_tecnico = AL_tecnico / 7,
@@ -127,8 +133,21 @@ dataset_ponderado <- dataset_categorizado %>%
     MCP_emailing = MCP_emailing / 3,
   )
 
+# Dataset sin datos outliers según técnicas de visualización
+dataset_sin_outliers <- dataset_ponderado %>%
+  filter(
+    Saldo.Medio.Anual < 0.8,
+    Saldo.Medio.Anual > 0.02,
+    Contactos.con.su.Ejecutivo < 0.18,
+    Edad < 1,
+    log(Edad) > -6
+  )
+
 
 # Exploración de los datos ------------------------------------------------
+
+# Considerar: Edad, Actividad laboral, Mora, Saldo medio anual, Crédito
+#hipotecario y Crèdito de consumo
 
 str(dataset_original)
 summary(dataset_original)
@@ -139,157 +158,249 @@ summary(dataset_editado)
 str(dataset_ponderado)
 summary(dataset_ponderado)
 
+# Histogramas de variables numéricas
+# Saldo medio anual
+ggplot(data = dataset_editado) +
+  geom_histogram(mapping = aes(x = `Saldo Medio Anual`)) +
+  labs(title = "Saldo medio anual")
+
+# Saldo medio anual (logaritmo)
+ggplot(data = dataset_editado) +
+  geom_histogram(mapping = aes(x = log(`Saldo Medio Anual`))) +
+  labs(title = "Saldo medio anual (logaritmo)")
+
+# Saldo medio anual sin valores menores o iguales a 0
+ggplot(
+  data = dataset_editado[dataset_editado$`Saldo Medio Anual` > 0, ]
+) +
+  geom_histogram(mapping = aes(x = `Saldo Medio Anual`)) +
+  labs(title = "Saldo medio anual sin valores menores o iguales a 0")
+
+# Saldo medio anual sin valores menores o iguales a 0 (logaritmo)
+ggplot(
+  data = dataset_editado[dataset_editado$`Saldo Medio Anual` > 0, ]
+) +
+  geom_histogram(mapping = aes(x = log(`Saldo Medio Anual`))) +
+  labs(
+    title = "Saldo medio anual sin valores menores o iguales a 0 (logaritmo)"
+  )
+
+# Edad
+ggplot(data = dataset_editado) +
+  geom_histogram(mapping = aes(x = `Edad`)) +
+  labs(title = "Edad")
+
+# Edad
+ggplot(data = dataset_editado) +
+  geom_histogram(mapping = aes(x = log(`Edad`))) +
+  labs(title = "Edad (logaritmo)")
+
+# Contactos con su ejecutivo
+ggplot(data = dataset_editado) +
+  geom_histogram(mapping = aes(x = `Contactos con su Ejecutivo`)) +
+  labs(title = "Contactos con su ejecutivo")
+
+# Contactos con su ejecutivo (logaritmo)
+ggplot(data = dataset_editado) +
+  geom_histogram(mapping = aes(x = log(`Contactos con su Ejecutivo`))) +
+  labs(title = "Contactos con su ejecutivo (logaritmo)")
+
+# Contactos con su ejecutivo sin valores 0
+ggplot(
+  data = dataset_editado[dataset_editado$`Contactos con su Ejecutivo` != 0, ]
+) +
+  geom_histogram(mapping = aes(x = `Contactos con su Ejecutivo`)) +
+  labs(title = "Contactos con su ejecutivo sin valores 0")
+
+# Contactos con su ejecutivo sin valores 0 (logaritmo)
+ggplot(
+  data = dataset_editado[dataset_editado$`Contactos con su Ejecutivo` != 0, ]
+) +
+  geom_histogram(mapping = aes(x = log(`Contactos con su Ejecutivo`))) +
+  labs(title = "Contactos con su ejecutivo sin valores 0 (logaritmo)")
+
+# Boxplots de variables numéricas
+# Saldo medio anual
+ggplot(data = dataset_editado) +
+  geom_boxplot(mapping = aes(x = `Saldo Medio Anual`)) +
+  labs(title = "Saldo medio anual")
+
+# Saldo medio anual (logaritmo)
+ggplot(data = dataset_editado) +
+  geom_boxplot(mapping = aes(x = log(`Saldo Medio Anual`))) +
+  labs(title = "Saldo medio anual (logaritmo)")
+
+# Saldo medio anual sin valores menores o iguales a 0
+ggplot(
+  data = dataset_editado[dataset_editado$`Saldo Medio Anual` > 0, ]
+) +
+  geom_boxplot(mapping = aes(x = `Saldo Medio Anual`)) +
+  labs(title = "Saldo medio anual sin valores menores o iguales a 0")
+
+# Saldo medio anual sin valores menores o iguales a 0 (logaritmo)
+ggplot(
+  data = dataset_editado[dataset_editado$`Saldo Medio Anual` > 0, ]
+) +
+  geom_boxplot(mapping = aes(x = log(`Saldo Medio Anual`))) +
+  labs(
+    title = "Saldo medio anual sin valores menores o iguales a 0 (logaritmo)"
+  )
+
+# Edad
+ggplot(data = dataset_editado) +
+  geom_boxplot(mapping = aes(x = `Edad`)) +
+  labs(title = "Edad")
+
+# Edad
+ggplot(data = dataset_editado) +
+  geom_boxplot(mapping = aes(x = log(`Edad`))) +
+  labs(title = "Edad (logaritmo)")
+
+# Contactos con su ejecutivo
+ggplot(data = dataset_editado) +
+  geom_boxplot(mapping = aes(x = `Contactos con su Ejecutivo`)) +
+  labs(title = "Contactos con su ejecutivo")
+
+# Contactos con su ejecutivo (logaritmo)
+ggplot(data = dataset_editado) +
+  geom_boxplot(mapping = aes(x = log(`Contactos con su Ejecutivo`))) +
+  labs(title = "Contactos con su ejecutivo (logaritmo)")
+
+# Contactos con su ejecutivo sin valores 0
+ggplot(
+  data = dataset_editado[dataset_editado$`Contactos con su Ejecutivo` != 0, ]
+) +
+  geom_boxplot(mapping = aes(x = `Contactos con su Ejecutivo`)) +
+  labs(title = "Contactos con su ejecutivo sin valores 0")
+
+# Contactos con su ejecutivo sin valores 0 (logaritmo)
+ggplot(
+  data = dataset_editado[dataset_editado$`Contactos con su Ejecutivo` != 0, ]
+) +
+  geom_boxplot(mapping = aes(x = log(`Contactos con su Ejecutivo`))) +
+  labs(title = "Contactos con su ejecutivo sin valores 0 (logaritmo)")
+
+# Comparativa de gráfico de puntos de las variables numéricas
+# Variables en escala lineal sin eliminar outliers
+plot(
+  x = dataset_ponderado[
+    ,
+    c("Saldo.Medio.Anual", "Contactos.con.su.Ejecutivo", "Edad")
+  ]
+)
+
+# Variables en escala lineal con outliers eliminados
+plot(
+  x = dataset_ponderado[
+    dataset_ponderado$Contactos.con.su.Ejecutivo < 0.18 &
+      dataset_ponderado$Saldo.Medio.Anual < 0.8 &
+      dataset_ponderado$Saldo.Medio.Anual > 0.02 &
+      dataset_ponderado$Edad < 1 &
+      log(dataset_ponderado$Edad) > -6,
+    c("Saldo.Medio.Anual", "Contactos.con.su.Ejecutivo", "Edad")
+  ]
+)
+
+# Variables en escala logaritmica sin eliminar outliers
+plot(
+  x = log(dataset_ponderado[
+    ,
+    c("Saldo.Medio.Anual", "Contactos.con.su.Ejecutivo", "Edad")
+  ])
+)
+
+# Variables en escala lineal con outliers eliminados
+plot(
+  x = log(dataset_ponderado[
+    dataset_ponderado$Contactos.con.su.Ejecutivo < 0.18 &
+      dataset_ponderado$Saldo.Medio.Anual < 0.8 &
+      dataset_ponderado$Saldo.Medio.Anual > 0.02 &
+      dataset_ponderado$Edad < 1 &
+      log(dataset_ponderado$Edad) > -6,
+    c("Saldo.Medio.Anual", "Contactos.con.su.Ejecutivo", "Edad")
+  ])
+)
+
 
 # Evaluación de modelos ---------------------------------------------------
 
-comparador_modelos_1 <- tibble(
-  Modelo = character(),
-  Exactitud = numeric(),
-  Sensibilidad = numeric(),
-  Especificidad = numeric(),
-  Diferencia_SE = numeric(),
-  Valor_F1 = numeric(),
-  Verdaderos_Positivos = integer(),
-  Falsos_Negativos = integer(),
-  Falsos_Positivos = integer(),
-  Verdaderos_Negativos = integer(),
-  Observaciones = integer(),
-  .rows = 0
-)
-
-##### Regresión logística #####
+##### K medios #####
 # Se declaran las variables que guardarán la suma
-suma_vp_rl <- 0
-suma_fn_rl <- 0
-suma_fp_rl <- 0
-suma_vn_rl <- 0
 
-variables_no_significativas_rl <- list()
-variables_significativas_rl <- list()
+numero_clusteres <- 2:10
+# Requiere de 7,5 GB libres para ejecutarse
+distancia <- dist(dataset_ponderado)
 
-for (particion in 1:numero_partes) {
-  # Se generan los datasets de entrenamiento y validación de cada iteración
-  datos_entrenamiento_rl <- dataset_variables_asignadas2[
-    -particiones_10[[particion]],
-  ]
-  datos_validacion_rl <- dataset_variables_asignadas2[
-    particiones_10[[particion]],
-  ]
-
-  # Se entrena el modelo de la iteración
-  modelo_auxiliar_rl <- glm(
-    formula = Fugado ~ .,
-    data = datos_entrenamiento_rl,
-    family = binomial
-  )
-
-  # Se obtiene la importancia de las variables
-  significancia_variables <- coef(summary(modelo_auxiliar_rl)) %>%
-    as_tibble(rownames = "id") %>%
-    arrange(`Pr(>|z|)`)
-
-  # Se obtienen las variables que no aportan al modelo significativamente
-  nombre_part <- paste("Fold", as.character(particion))
-  variables_no_significativas_rl[[nombre_part]] <- significancia_variables %>%
-    filter(`Pr(>|z|)` > 0.05) %>%
-    select(id) %>%
-    unlist()
-
-  # Se obtienen las variables más significativas del modelo
-  variables_significativas_rl[[nombre_part]] <- significancia_variables %>%
-    filter(`Pr(>|z|)` < 0.001) %>%
-    arrange(desc(`Pr(>|z|)`)) %>%
-    select(id) %>%
-    unlist()
-
-  # Se genera la predicción
-  prediccion_auxiliar_rl <- predict(
-    object = modelo_auxiliar_rl,
-    newdata = datos_validacion_rl,
-    type = "response"
-  )
-  prediccion_auxiliar_rl <- ifelse(prediccion_auxiliar_rl < 0.50, "No", "Si")
-
-  # Se genera la matriz de confusión
-  matriz_auxiliar_rl <- confusionMatrix(
-    data = as.factor(prediccion_auxiliar_rl),
-    reference = datos_validacion_rl$Fugado,
-    positive = "Si"
-  )
-
-  # Se suman VP, VN, FP y FN
-  suma_vp_rl <- suma_vp_rl + matriz_auxiliar_rl$table[1]
-  suma_fn_rl <- suma_fn_rl + matriz_auxiliar_rl$table[2]
-  suma_fp_rl <- suma_fp_rl + matriz_auxiliar_rl$table[3]
-  suma_vn_rl <- suma_vn_rl + matriz_auxiliar_rl$table[4]
-}
-
-# Se promedian los valores por el número de partes
-promedio_vp_rl <- round(suma_vp_rl / numero_partes)
-promedio_fn_rl <- round(suma_fn_rl / numero_partes)
-promedio_fp_rl <- round(suma_fp_rl / numero_partes)
-promedio_vn_rl <- round(suma_vn_rl / numero_partes)
-
-# Se insertan en la tabla para comparar los modelos
-comparador_modelos_1 <- bind_rows(
-  comparador_modelos_1,
-  tibble(
-    Modelo = "Regresión logística",
-    Exactitud = round(
-      x = (promedio_vp_rl + promedio_vn_rl) /
-        (promedio_vp_rl + promedio_fn_rl + promedio_fp_rl + promedio_vn_rl),
-      digit = 4
-    ),
-    Sensibilidad = round(
-      x = promedio_vp_rl / (promedio_vp_rl + promedio_fn_rl),
-      digit = 4
-    ),
-    Especificidad = round(
-      x = promedio_vn_rl / (promedio_fp_rl + promedio_vn_rl),
-      digit = 4
-    ),
-    Diferencia_SE = abs(Sensibilidad - Especificidad),
-    Valor_F1 = round(
-      x = (2 * promedio_vp_rl) /
-        (2 * promedio_vp_rl + promedio_fn_rl + promedio_fp_rl),
-      digit = 4
-    ),
-    Verdaderos_Positivos = promedio_vp_rl,
-    Falsos_Negativos = promedio_fn_rl,
-    Falsos_Positivos = promedio_fp_rl,
-    Verdaderos_Negativos = promedio_vn_rl,
-    Observaciones = promedio_vp_rl + promedio_fn_rl + promedio_fp_rl +
-      promedio_vn_rl
-  )
+# Dataset ponderado con registros outliers
+modelo_km1 <- kmeans(
+  x = dataset_ponderado,
+  centers = 4,
+  iter.max = 10,
+  nstart = 1,
+  algorithm = "Hartigan-Wong",
+  trace = FALSE
 )
 
-# Variables no significativas para todos los modelos de regresión logística
-# Pr(> |z|) > 0.05
-maximo_variables_no_significativas_rl <- lapply(
-  X = variables_no_significativas_rl,
-  FUN = length
-) %>%
-  unlist() %>%
-  max()
-variables_no_significativas_rl <- data.frame(lapply(
-  X = variables_no_significativas_rl,
-  FUN = `length<-`,
-  maximo_variables_no_significativas_rl
-))
+silhouette(x = modelo_km1$cluster, dist = distancia)
 
-# Variables significativas para todos los modelos de regresión logística
-# Pr(> |z|) < 0.001
-maximo_variables_significativas_rl <- lapply(
-  X = variables_significativas_rl,
-  FUN = length
-) %>%
-  unlist() %>%
-  max()
-variables_significativas_rl <- data.frame(lapply(
-  X = variables_significativas_rl,
-  FUN = `length<-`,
-  maximo_variables_significativas_rl
-))
+
+modelo_mixgauss1 <- Mclust(
+  data = dataset_ponderado,
+  G = 4
+)
+
+modelo_km1_viz <- fviz_cluster(modelo_km1, dataset_ponderado, ellipse = FALSE, geom = "point")
+modelo_mixgauss1_viz <- fviz_cluster(modelo_mixgauss1, dataset_ponderado, ellipse = FALSE, geom = "point")
+fm_score1 <- FM_index(modelo_km1$cluster, modelo_mixgauss1$classification)
+v_measure1 <- v_measure(true = modelo_km1$cluster, pred =  modelo_mixgauss1$classification)
+ar_index1 <- adj_rand_index(cl1 = modelo_km1$cluster, cl2 = modelo_mixgauss1$classification)
+
+# Dataset ponderado con registros outliers
+modelo_km2 <- kmeans(
+  x = dataset_sin_outliers,
+  centers = 5,
+  iter.max = 10,
+  nstart = 1,
+  algorithm = "Hartigan-Wong",
+  trace = FALSE
+)
+
+modelo_mixgauss2 <- Mclust(
+  data = dataset_sin_outliers,
+  G = 5
+)
+
+modelo_km2_viz <- fviz_cluster(modelo_km2, dataset_sin_outliers, ellipse = FALSE, geom = "point")
+modelo_mixgauss2_viz <- fviz_cluster(modelo_mixgauss2, dataset_sin_outliers, ellipse = FALSE, geom = "point")
+fm_score2 <- FM_index(modelo_km2$cluster, modelo_mixgauss2$classification)
+v_measure2 <- v_measure(true = modelo_km2$cluster, pred = modelo_mixgauss2$classification)
+ar_index2 <- adj_rand_index(cl1 = modelo_km2$cluster, cl2 = modelo_mixgauss2$classification)
+
+# Comparador de comparadores
+fm_score1
+v_measure1
+ar_index1
+
+fm_score2
+v_measure2
+ar_index2
+
+# PCA
+modelo1_pca <- princomp(x = dataset_sin_outliers)
+var_pca_porc1 <- round(
+  x = modelo1_pca$sdev^2 / sum(modelo1_pca$sdev^2) * 100,
+  digit = 2
+)
+modelo1_2d <- fviz_pca_ind(X = modelo1_pca, habillage = modelo_km1$cluster)
+modelo1_3d <- plot3d(modelo1_pca$scores[, 1:3], col = modelo_km1$cluster)
+
+modelo2_pca <- princomp(x = dataset_sin_outliers)
+var_pca_porc2 <- round(
+  x = modelo2_pca$sdev^2 / sum(modelo2_pca$sdev^2) * 100,
+  digit = 2
+)
+modelo2_2d <- fviz_pca_ind(X = modelo2_pca, habillage = modelo_km2$cluster)
+modelo2_3d <- plot3d(modelo2_pca$scores[, 1:3], col = modelo_km2$cluster)
 
 
 # Tablas importantes ------------------------------------------------------
