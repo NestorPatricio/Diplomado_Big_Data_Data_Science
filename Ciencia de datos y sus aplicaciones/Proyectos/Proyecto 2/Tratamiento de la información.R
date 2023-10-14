@@ -9,17 +9,16 @@ librerias <- c(
   "tibble",
   "ggplot2",
   "readxl",
-  "xlsx",
+  #"xlsx", # Paquete para escirbir archivos xlsx
   "factoextra", # Visualización de PCA
-  "clustercrit",
-  #"cluster", # Cálculo de silueta
-  #"caret",# Matriz de comparación
-  #"mclust",# Mixture-Gaussian model
-  #"dbscan", # DBSCAN  model
-  #"dendextend",# Evaluar comparador "FM_index"
-  #"clevr",# Evaluar comparador "v_measure" y "adj_rand_index"
-  #"rgl", # Visualización en 3D
-  #"dendextend", # Otro modelo que no recuerdo
+  "cluster", # Cálculo de silueta
+  "caret",# Matriz de comparación
+  "mclust",# Mixture-Gaussian model
+  "dbscan", # DBSCAN  model
+  "dendextend",# Evaluar comparador "FM_index"
+  "clevr",# Evaluar comparador "v_measure" y "adj_rand_index"
+  "rgl", # Visualización en 3D
+  "dendextend", # Otro modelo que no recuerdo
   "lintr"
 )
 for (libreria in librerias) {
@@ -142,6 +141,49 @@ dataset_sin_outliers <- dataset_ponderado %>%
     Edad < 1,
     log(Edad) > -6
   )
+
+# Dataset con aumento del peso de variables clave x2
+dataset_pesado <- dataset_sin_outliers %>%
+  mutate(
+    Edad = Edad * 2,
+    Tiene_mora = Tiene_mora * 2,
+    Saldo.Medio.Anual = Saldo.Medio.Anual * 2,
+    Tiene_credito_hipotecario = Tiene_credito_hipotecario * 2,
+    Tiene_credito_de_consumo = Tiene_credito_de_consumo * 2,
+    AL_empresario = AL_empresario * 2,
+    AL_gerente = AL_gerente * 2,
+    AL_obrero = AL_obrero * 2,
+    AL_tecnico = AL_tecnico * 2,
+    AL_trab_dep = AL_trab_dep * 2,
+    AL_trab_ind = AL_trab_ind * 2
+  )
+
+dataset_podado_pesado <- dataset_pesado %>%
+  select(
+    Edad, Tiene_mora, Saldo.Medio.Anual, Tiene_credito_hipotecario,
+    Tiene_credito_de_consumo, AL_empresario, AL_gerente, AL_obrero, AL_tecnico,
+    AL_trab_dep, AL_trab_ind, NE_universit, MCP_celular
+  )
+
+dataset_podado_pesado2 <- dataset_pesado %>%
+  select(
+    Edad, Saldo.Medio.Anual, Tiene_credito_hipotecario, AL_trab_dep,
+    NE_universit, MCP_celular
+  )
+
+dataset_podado <- dataset_sin_outliers %>%
+  select(
+    Edad, Tiene_mora, Saldo.Medio.Anual, Tiene_credito_hipotecario,
+    Tiene_credito_de_consumo, AL_empresario, AL_gerente, AL_obrero, AL_tecnico,
+    AL_trab_dep, AL_trab_ind, NE_universit, MCP_celular
+  )
+
+dataset_podado2 <- dataset_sin_outliers %>%
+  select(
+    Edad, Saldo.Medio.Anual, Tiene_credito_hipotecario, AL_trab_dep,
+    NE_universit, MCP_celular
+  )
+summary(dataset_podado_pesado2)
 
 
 # Exploración de los datos ------------------------------------------------
@@ -324,66 +366,123 @@ plot(
 
 # Evaluación de modelos ---------------------------------------------------
 
-##### K medios #####
-# Se declaran las variables que guardarán la suma
-
-numero_clusteres <- 2:10
-# Requiere de 7,5 GB libres para ejecutarse
-distancia <- dist(dataset_ponderado)
+##### Evaluación de la variación con K-medios de 4 clústeres #####
+comparador <- tibble(
+  Cluster1 = integer(),
+  Cluster2 = integer(),
+  Cluster3 = integer(),
+  Cluster4 = integer(),
+)
 
 # Dataset ponderado con registros outliers
+for (i in 1:20) {
+  modelo_km1 <- kmeans(
+    x = dataset_ponderado,
+    centers = 4,
+    iter.max = 20,
+    nstart = 30,
+    algorithm = "Hartigan-Wong",
+    trace = FALSE
+  )
+
+  comparador <- bind_rows(
+    comparador,
+    tibble(
+      Cluster1 = sum(modelo_km1$cluster == 1),
+      Cluster2 = sum(modelo_km1$cluster == 2),
+      Cluster3 = sum(modelo_km1$cluster == 3),
+      Cluster4 = sum(modelo_km1$cluster == 4),
+    )
+  )
+}
+
+
+##### Homologación de K-medios y Mezcla Gaussiana para 4 clústeres #####
+# K-medios
 modelo_km1 <- kmeans(
-  x = dataset_ponderado,
+  x = dataset_pesado,
   centers = 4,
-  iter.max = 10,
-  nstart = 1,
+  iter.max = 20,
+  nstart = 30,
   algorithm = "Hartigan-Wong",
   trace = FALSE
 )
+clusters_km1 <- modelo_km1$cluster
 
-silhouette(x = modelo_km1$cluster, dist = distancia)
-
-
+# Mezcla Gaussiana
 modelo_mixgauss1 <- Mclust(
-  data = dataset_ponderado,
+  data = dataset_pesado,
   G = 4
 )
+clusters_mg1 <- modelo_mixgauss1$classification
 
-modelo_km1_viz <- fviz_cluster(modelo_km1, dataset_ponderado, ellipse = FALSE, geom = "point")
-modelo_mixgauss1_viz <- fviz_cluster(modelo_mixgauss1, dataset_ponderado, ellipse = FALSE, geom = "point")
-fm_score1 <- FM_index(modelo_km1$cluster, modelo_mixgauss1$classification)
-v_measure1 <- v_measure(true = modelo_km1$cluster, pred =  modelo_mixgauss1$classification)
-ar_index1 <- adj_rand_index(cl1 = modelo_km1$cluster, cl2 = modelo_mixgauss1$classification)
-
-# Dataset ponderado con registros outliers
-modelo_km2 <- kmeans(
-  x = dataset_sin_outliers,
-  centers = 5,
-  iter.max = 10,
-  nstart = 1,
-  algorithm = "Hartigan-Wong",
-  trace = FALSE
+# Matriz de confusión previo a la edición
+comp_matriz1 <- confusionMatrix(
+  data = as.factor(clusters_km1),
+  reference = as.factor(clusters_mg1),
+  dnn = c("K-medios", "Mezcla Gaussian")
 )
 
-modelo_mixgauss2 <- Mclust(
-  data = dataset_sin_outliers,
-  G = 5
+# Cálculo del Índice de Fowlkes-Mallows previo a la edición
+comp_fmi1 <- FM_index(
+  A1_clusters = clusters_km1,
+  A2_clusters = clusters_mg1
 )
 
-modelo_km2_viz <- fviz_cluster(modelo_km2, dataset_sin_outliers, ellipse = FALSE, geom = "point")
-modelo_mixgauss2_viz <- fviz_cluster(modelo_mixgauss2, dataset_sin_outliers, ellipse = FALSE, geom = "point")
-fm_score2 <- FM_index(modelo_km2$cluster, modelo_mixgauss2$classification)
-v_measure2 <- v_measure(true = modelo_km2$cluster, pred = modelo_mixgauss2$classification)
-ar_index2 <- adj_rand_index(cl1 = modelo_km2$cluster, cl2 = modelo_mixgauss2$classification)
+# Cálculo de V-measure previo a la edición
+comp_vmeasure1 <- v_measure(
+  true = clusters_km1,
+  pred = clusters_mg1
+)
 
-# Comparador de comparadores
-fm_score1
-v_measure1
-ar_index1
+# Cálculo del Índice de Rand ajustado previo a la edición
+comp_arandi1 <- adj_rand_index(
+  true = clusters_km1,
+  pred = clusters_mg1
+)
 
-fm_score2
-v_measure2
-ar_index2
+# Comparador de valores previo a la edición
+comparacion_comparadores <- tibble(
+  Exactitud = round(x = comp_matriz1$overall[1], digit = 4),
+  Fowlkes_Mallows = round(x = comp_fmi1[1], digit = 4),
+  V_measure = round(x = comp_vmeasure1, digit = 4),
+  Rand_ajustado = round(x = comp_arandi1, digit = 4)
+)
+
+# Identificador de clústeres
+clusteres <- tibble(
+  K_medios_pre = clusters_km1,
+  M_gaussi_pre = clusters_mg1
+)
+
+clusteres %>%
+  filter(K_medios_pre == 1) %>%
+  group_by(M_gaussi_pre) %>%
+  summarise("cantidad" = n())
+clusteres %>%
+  filter(K_medios_pre == 2) %>%
+  group_by(M_gaussi_pre) %>%
+  summarise("cantidad" = n())
+clusteres %>%
+  filter(K_medios_pre == 3) %>%
+  group_by(M_gaussi_pre) %>%
+  summarise("cantidad" = n())
+clusteres %>%
+  filter(K_medios_pre == 4) %>%
+  group_by(M_gaussi_pre) %>%
+  summarise("cantidad" = n())
+
+
+
+# El cálculo de la distancia y la silueta los debe hacer Wladimir
+# distancia <- dist(dataset_ponderado)
+# silhouette(x = modelo_km1$cluster, dist = distancia)
+
+# Propuesta de Ramiro (Chat-GPT) para el cálculo de silueta
+#mean(modelo_km$betweenss / modelo_km$tot.withinss
+
+
+
 
 # PCA
 modelo1_pca <- princomp(x = dataset_sin_outliers)
@@ -417,3 +516,220 @@ write.xlsx(
 )
 
 # Experimentos ------------------------------------------------------------
+
+# Comparador de distintas ejecuciones de K-medios
+df_experimental <- data.frame(
+  variables = character(),
+  valor_k = integer(),
+  iteración = integer(),
+  silueta_media = numeric(),
+  suma_cuadratica = numeric()
+)
+
+# Se comparan 20 ejecuciones para valores K de 2 a 10
+for (k in 1:10) {
+  for (iteracion in 1:30) {
+    modelo_km <- kmeans(
+      #x = dataset_ponderado,
+      #x= dataset_sin_outliers,
+      #x = dataset_pesado,
+      #x = dataset_podado_pesado,
+      x = dataset_podado_pesado2,
+      centers = k,
+      iter.max = 20,
+      nstart = 30,
+      algorithm = "Hartigan-Wong",
+      trace = FALSE
+    )
+
+    # Acá podría ponerse el cálculo de silueta
+
+    # Se genera la nueva fila de la iteración
+    nueva_fila <- data.frame(
+      #variables = "Todas",
+      #variables = "Sin outliers",
+      #variables = "Pesadas x2",
+      #variables = "Podado x2",
+      variables = "Liviano x2",
+      valor_k = k,
+      iteración = iteracion,
+      silueta_media = NA,
+      suma_cuadratica = modelo_km$tot.withinss
+    )
+
+    # Agrega una fila al DataFrame df_experimental
+    df_experimental <- rbind(df_experimental, nueva_fila)
+  }
+}
+
+for (k in 1:10) {
+  valores <- unique(
+    x = df_experimental[
+      df_experimental$valor_k == k & df_experimental$variables == "Pesadas x2",
+      "suma_cuadratica"
+    ]
+  )
+
+  cat(
+    paste0(
+      "\n\nPara ", k, " clústeres, en 30 iteraciones, existen ",
+      length(valores), " valores de suma cuadrática distintos, con promedio ",
+      round(mean(valores), 2), ":\n"
+    )
+  )
+  print(sort(unique(valores)))
+}
+
+# Gráficos de codo
+grafico_codo1 <- df_experimental[1:300, ] %>%
+  filter(variables == "Todas") %>%
+  group_by(valor_k) %>%
+  summarise(suma_cuadratica = mean(suma_cuadratica)) %>%
+  ggplot() +
+  geom_line(mapping = aes(x = valor_k, y = suma_cuadratica)) +
+  geom_point(mapping = aes(x = valor_k, y = suma_cuadratica)) +
+  labs(
+    title = "Suma cuadrática de distancias por número de clústeres.",
+    subtitle = "Todas las variables.",
+    x = "Número de clústeres",
+    y = "Suma cuadrática"
+  ) +
+  scale_x_continuous(breaks = 1:10, labels = 1:10) +
+  theme_light() +
+  theme(panel.grid.minor.x = element_blank())
+
+grafico_codo2 <- df_experimental[301:600, ] %>%
+  filter(variables == "Sin outliers") %>%
+  group_by(valor_k) %>%
+  summarise(suma_cuadratica = mean(suma_cuadratica)) %>%
+  ggplot() +
+  geom_line(mapping = aes(x = valor_k, y = suma_cuadratica)) +
+  geom_point(mapping = aes(x = valor_k, y = suma_cuadratica)) +
+  labs(
+    title = "Suma cuadrática de distancias por número de clústeres.",
+    subtitle = "Todas las variables sin valores outliers.",
+    x = "Número de clústeres",
+    y = "Suma cuadrática"
+  ) +
+  scale_x_continuous(breaks = 1:10, labels = 1:10) +
+  theme_light() +
+  theme(panel.grid.minor.x = element_blank())
+
+grafico_codo3 <- df_experimental %>%
+  filter(variables == "Pesadas x2") %>%
+  group_by(valor_k) %>%
+  summarise(suma_cuadratica = mean(suma_cuadratica)) %>%
+  ggplot() +
+  geom_line(mapping = aes(x = valor_k, y = suma_cuadratica)) +
+  geom_point(mapping = aes(x = valor_k, y = suma_cuadratica)) +
+  labs(
+    title = "Suma cuadrática de distancias por número de clústeres.",
+    subtitle = "Variables claves con peso x2.",
+    x = "Número de clústeres",
+    y = "Suma cuadrática"
+  ) +
+  scale_x_continuous(breaks = 1:10, labels = 1:10) +
+  theme_light() +
+  theme(panel.grid.minor.x = element_blank())
+
+grafico_codo4 <- df_experimental %>%
+  filter(variables == "Podado x2") %>%
+  group_by(valor_k) %>%
+  summarise(suma_cuadratica = mean(suma_cuadratica)) %>%
+  ggplot() +
+  geom_line(mapping = aes(x = valor_k, y = suma_cuadratica)) +
+  geom_point(mapping = aes(x = valor_k, y = suma_cuadratica)) +
+  labs(
+    title = "Suma cuadrática de distancias por número de clústeres.",
+    subtitle = "Variables claves con peso x2 y seleccionado.",
+    x = "Número de clústeres",
+    y = "Suma cuadrática"
+  ) +
+  scale_x_continuous(breaks = 1:10, labels = 1:10) +
+  theme_light() +
+  theme(panel.grid.minor.x = element_blank())
+
+grafico_codo5 <- df_experimental %>%
+  filter(variables == "Liviano x2") %>%
+  group_by(valor_k) %>%
+  summarise(suma_cuadratica = mean(suma_cuadratica)) %>%
+  ggplot() +
+  geom_line(mapping = aes(x = valor_k, y = suma_cuadratica)) +
+  geom_point(mapping = aes(x = valor_k, y = suma_cuadratica)) +
+  labs(
+    title = "Suma cuadrática de distancias por número de clústeres.",
+    subtitle = "Variables claves con peso x2 y ultra seleccionado.",
+    x = "Número de clústeres",
+    y = "Suma cuadrática"
+  ) +
+  scale_x_continuous(breaks = 1:10, labels = 1:10) +
+  theme_light() +
+  theme(panel.grid.minor.x = element_blank())
+
+# Gráfico comparado con distintas facetas
+df_experimental %>%
+  mutate(variables = as.factor(variables)) %>%
+  group_by(variables, valor_k) %>%
+  summarise(suma_cuadratica = mean(suma_cuadratica)) %>%
+  ggplot() +
+  geom_line(
+    mapping = aes(x = valor_k, y = suma_cuadratica, colour = variables)
+  ) +
+  geom_point(
+    mapping = aes(x = valor_k, y = suma_cuadratica, colour = variables)
+  ) +
+  labs(
+    title = "Suma cuadrática de distancias por número de clústeres.",
+    #subtitle = "Variables claves con peso x2.",
+    x = "Número de clústeres",
+    y = "Suma cuadrática"
+  ) +
+  scale_x_continuous(breaks = 1:10, labels = 1:10) +
+  facet_wrap(facets = vars(variables), ncol = 5 , scales = "free_y") +
+  theme_light() +
+  theme(panel.grid = element_blank())
+
+
+# Evaluación de clústeres -------------------------------------------------
+
+modelo_km_final <- kmeans(
+  x = dataset_pesado,
+  centers = 5,
+  iter.max = 20,
+  nstart = 30,
+  algorithm = "Hartigan-Wong",
+  trace = FALSE
+)
+
+dataset_con_clusteres <- dataset_categorizado[
+  dataset_ponderado$Saldo.Medio.Anual < 0.8 &
+    dataset_ponderado$Saldo.Medio.Anual > 0.02 &
+    dataset_ponderado$Contactos.con.su.Ejecutivo < 0.18 &
+    dataset_ponderado$Edad < 1 & log(dataset_ponderado$Edad) > -6,
+] %>%
+  mutate(Clúster = modelo_km_final$cluster)
+
+media_sin_cluster <- dataset_con_clusteres %>%
+  summarise_all(mean) %>%
+  mutate(Clúster = "Total", Tamaño = nrow(dataset_con_clusteres))
+
+medias_con_clusteres <- dataset_con_clusteres %>%
+  mutate(Clúster = as.factor(Clúster)) %>%
+  group_by(Clúster) %>%
+  summarise_all(mean) %>%
+  mutate(Tamaño = modelo_km_final$size) %>%
+  bind_rows(media_sin_cluster)
+
+mediana_sin_cluster <- dataset_con_clusteres %>%
+  summarise_all(median) %>%
+  mutate(Clúster = "Total", Tamaño = nrow(dataset_con_clusteres))
+
+medianas_con_clusteres <- dataset_con_clusteres %>%
+  mutate(Clúster = as.factor(Clúster)) %>%
+  group_by(Clúster) %>%
+  summarise_all(median) %>%
+  mutate(Tamaño = modelo_km_final$size) %>%
+  bind_rows(mediana_sin_cluster)
+
+ggplot(data = dataset_con_clusteres) +
+  geom_boxplot(mapping = aes(x = Clúster, y = `Saldo Medio Anual`))
