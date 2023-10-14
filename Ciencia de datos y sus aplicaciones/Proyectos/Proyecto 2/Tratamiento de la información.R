@@ -12,13 +12,13 @@ librerias <- c(
   #"xlsx", # Paquete para escirbir archivos xlsx
   "factoextra", # Visualización de PCA
   "cluster", # Cálculo de silueta
-  "caret",# Matriz de comparación
-  "mclust",# Mixture-Gaussian model
+  "caret", # Matriz de comparación
+  "mclust", # Mixture-Gaussian model
   "dbscan", # DBSCAN  model
-  "dendextend",# Evaluar comparador "FM_index"
-  "clevr",# Evaluar comparador "v_measure" y "adj_rand_index"
+  "dendextend", # Evaluar comparador "FM_index"
+  "clevr", # Evaluar comparador "v_measure" y "adj_rand_index"
   "rgl", # Visualización en 3D
-  "dendextend", # Otro modelo que no recuerdo
+  "Rtsne", # Análisis t-SNE
   "lintr"
 )
 for (libreria in librerias) {
@@ -43,7 +43,7 @@ if (Sys.info()["sysname"] == "Windows") {
 }
 
 # Se ejecuta el linter de R para evaluar el estilo del script
-#lint(filename = "Tratamiento de la información.R")
+lint(filename = "Tratamiento de la información.R")
 
 
 # Funciones ---------------------------------------------------------------
@@ -142,7 +142,7 @@ dataset_sin_outliers <- dataset_ponderado %>%
     log(Edad) > -6
   )
 
-# Dataset con aumento del peso de variables clave x2
+# Dataset con peso de variables clave x2
 dataset_pesado <- dataset_sin_outliers %>%
   mutate(
     Edad = Edad * 2,
@@ -158,6 +158,7 @@ dataset_pesado <- dataset_sin_outliers %>%
     AL_trab_ind = AL_trab_ind * 2
   )
 
+# Dataset con peso de variables clave x2 y eliminación de algunas homogéneas
 dataset_podado_pesado <- dataset_pesado %>%
   select(
     Edad, Tiene_mora, Saldo.Medio.Anual, Tiene_credito_hipotecario,
@@ -165,12 +166,14 @@ dataset_podado_pesado <- dataset_pesado %>%
     AL_trab_dep, AL_trab_ind, NE_universit, MCP_celular
   )
 
+# Dataset con peso de variables clave x2 y eliminación de todas las homogéneas
 dataset_podado_pesado2 <- dataset_pesado %>%
   select(
     Edad, Saldo.Medio.Anual, Tiene_credito_hipotecario, AL_trab_dep,
     NE_universit, MCP_celular
   )
 
+# Dataset con eliminación de variables muy homogéneas, excepto las clave
 dataset_podado <- dataset_sin_outliers %>%
   select(
     Edad, Tiene_mora, Saldo.Medio.Anual, Tiene_credito_hipotecario,
@@ -178,12 +181,13 @@ dataset_podado <- dataset_sin_outliers %>%
     AL_trab_dep, AL_trab_ind, NE_universit, MCP_celular
   )
 
+# Dataset con eliminación de todas las variables muy homogéneas
 dataset_podado2 <- dataset_sin_outliers %>%
   select(
     Edad, Saldo.Medio.Anual, Tiene_credito_hipotecario, AL_trab_dep,
     NE_universit, MCP_celular
   )
-summary(dataset_podado_pesado2)
+#summary(dataset_podado_pesado2)
 
 
 # Exploración de los datos ------------------------------------------------
@@ -378,7 +382,7 @@ comparador <- tibble(
 for (i in 1:20) {
   modelo_km1 <- kmeans(
     x = dataset_ponderado,
-    centers = 4,
+    centers = 3,
     iter.max = 20,
     nstart = 30,
     algorithm = "Hartigan-Wong",
@@ -475,7 +479,7 @@ clusteres %>%
 
 
 # El cálculo de la distancia y la silueta los debe hacer Wladimir
-# distancia <- dist(dataset_ponderado)
+#distancia <- dist(dataset_pca)
 # silhouette(x = modelo_km1$cluster, dist = distancia)
 
 # Propuesta de Ramiro (Chat-GPT) para el cálculo de silueta
@@ -484,22 +488,43 @@ clusteres %>%
 
 
 
-# PCA
+##### Análisis de los componentes principales (PCA) #####
+# Dataset sin outliers
 modelo1_pca <- princomp(x = dataset_sin_outliers)
-var_pca_porc1 <- round(
+round(
   x = modelo1_pca$sdev^2 / sum(modelo1_pca$sdev^2) * 100,
   digit = 2
 )
-modelo1_2d <- fviz_pca_ind(X = modelo1_pca, habillage = modelo_km1$cluster)
-modelo1_3d <- plot3d(modelo1_pca$scores[, 1:3], col = modelo_km1$cluster)
+fviz_pca_ind(X = modelo1_pca, habillage = modelo_km_final$cluster)
+plot3d(modelo1_pca$scores[, 1:3], col = modelo_km_final$cluster)
 
-modelo2_pca <- princomp(x = dataset_sin_outliers)
-var_pca_porc2 <- round(
+# Dataset con análisis PCA del 85% de información
+dataset_pca <- modelo1_pca$scores[,
+  c("Comp.1", "Comp.2", "Comp.3", "Comp.4", "Comp.5")
+]
+
+# Dataset pesado
+modelo2_pca <- princomp(x = dataset_pesado)
+round(
   x = modelo2_pca$sdev^2 / sum(modelo2_pca$sdev^2) * 100,
   digit = 2
 )
-modelo2_2d <- fviz_pca_ind(X = modelo2_pca, habillage = modelo_km2$cluster)
-modelo2_3d <- plot3d(modelo2_pca$scores[, 1:3], col = modelo_km2$cluster)
+fviz_pca_ind(X = modelo2_pca, habillage = modelo_km_final$cluster)
+plot3d(modelo2_pca$scores[, 1:3], col = modelo_km_final$cluster)
+
+# Dataset PCA
+modelo3_pca <- princomp(x = dataset_sin_outliers)
+round(
+  x = modelo3_pca$sdev^2 / sum(modelo3_pca$sdev^2) * 100,
+  digit = 2
+)
+fviz_pca_ind(X = modelo3_pca, habillage = modelo_km_final$cluster)
+plot3d(modelo3_pca$scores[, 1:3], col = modelo_km_final$cluster)
+
+##### Análisis tSNE #####
+modelo1_tsne <- Rtsne(X = unique(dataset_sin_outliers))
+ggplot(data = as_tibble(modelo1_tsne$Y)) +
+  geom_point(mapping = aes(x = V1, y = V2))
 
 
 # Tablas importantes ------------------------------------------------------
@@ -534,7 +559,8 @@ for (k in 1:10) {
       #x= dataset_sin_outliers,
       #x = dataset_pesado,
       #x = dataset_podado_pesado,
-      x = dataset_podado_pesado2,
+      #x = dataset_podado_pesado2,
+      x = dataset_pca,
       centers = k,
       iter.max = 20,
       nstart = 30,
@@ -550,7 +576,8 @@ for (k in 1:10) {
       #variables = "Sin outliers",
       #variables = "Pesadas x2",
       #variables = "Podado x2",
-      variables = "Liviano x2",
+      #variables = "Liviano x2",
+      variables = "PCA",
       valor_k = k,
       iteración = iteracion,
       silueta_media = NA,
@@ -565,7 +592,7 @@ for (k in 1:10) {
 for (k in 1:10) {
   valores <- unique(
     x = df_experimental[
-      df_experimental$valor_k == k & df_experimental$variables == "Pesadas x2",
+      df_experimental$valor_k == k & df_experimental$variables == "PCA",
       "suma_cuadratica"
     ]
   )
@@ -680,12 +707,12 @@ df_experimental %>%
   ) +
   labs(
     title = "Suma cuadrática de distancias por número de clústeres.",
-    #subtitle = "Variables claves con peso x2.",
+    subtitle = "Variables claves con peso x2.",
     x = "Número de clústeres",
     y = "Suma cuadrática"
   ) +
   scale_x_continuous(breaks = 1:10, labels = 1:10) +
-  facet_wrap(facets = vars(variables), ncol = 5 , scales = "free_y") +
+  facet_wrap(facets = vars(variables), ncol = 5, scales = "free_y") +
   theme_light() +
   theme(panel.grid = element_blank())
 
@@ -693,8 +720,8 @@ df_experimental %>%
 # Evaluación de clústeres -------------------------------------------------
 
 modelo_km_final <- kmeans(
-  x = dataset_pesado,
-  centers = 5,
+  x = dataset_pca,
+  centers = 3,
   iter.max = 20,
   nstart = 30,
   algorithm = "Hartigan-Wong",
