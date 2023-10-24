@@ -1,0 +1,34 @@
+MLDL v12 Examen - 23 oct. 2023
+Hola Néstor Patricio
+
+NO MODIFIQUES LAS PREGUNTAS (aunque encuentres errores en el texto).
+Contesta cada pregunta en el espacio que comienza con 'Respuesta:'.
+Escribe tus respuestas en forma breve, precisa y concisa, justificando tu declaración y/o dando alguna referencia de razonamiento. Al terminar guarda las preguntas y las respuestas respectivas en este mismo archivo guardado en forma TXT o DOCX solamente, y súbelas en la dirección:
+
+         AIKER.RSolver.com/AIKER/UploadTest.aspx
+
+Este buzón permite volver a subir el mismo archivo y reemplazar la versión anterior, conservando siempre la última como entrega oficial.
+
+________________________
+Lee con atención las preguntas y contesta sólo lo requerido. Cada respuesta debe tener una argumentación y/o justificación, de lo contrario podrá tener un puntaje incompleto. No exageres en el largo de la respuesta. Se privilegian respuestas concisas y precisas. Puedes recurrir a todo el material de clases y referencias bibliográficas para responder.
+________________________
+Pregunta 1) Uno de los casos en que hay sobreajuste u overfitting es cuando en los datos de entrenamiento hay una cantidad desigual de ejemplos de una clase sobre las otras. ¿Cómo se reconoce certera o cuantitativamente esta situación y cómo se puede resolver? (1,5 puntos)
+
+Respuesta: La desigualdad de ejemplos se puede identificar a varios niveles: en la etapa de exploración de datos previa a cualquier manipulación o al momento de revisar los indicadores, pues nos podemos encontrar con una gran desproporción entre sensibilidad y especificidad. La forma de resolverlo es, aleatoriamente, disminuyendo los registros de la clase mayoritaria (undersampling) o, aleatoriamente, aumentando los registros de la clase minoritaria (oversampling).
+
+
+Pregunta 2) Una sonda espacial de la NASA envía imágenes a la tierra, donde el desafío está en que suele haber problemas en la transmisión y se reciben datos parcialmente corruptos. Sin embargo, un equipo de Data Science implementó un modelo capaz de realizar una restitución de buena calidad de esas imágenes, usando ejemplos muy similares como referencia para el entrenamiento. ¿Cuál modelo visto y/o comentado en clases permite hacer esta dinámica de restitución entrenándose en base a imágenes de referencia de otras sondas? Declare el modelo (o tipo de modelo) y su justificación para este caso. (1,5 puntos)
+
+Respuesta: El modelo usado, probablemente, sea una red neuronal profunda de tipo autoencoder, pues la capa decodificadora es capaz de reconstruir una imagen desde un input corrupto con mínima pérdida de información.
+
+
+Pregunta 3) Dado que un Vocabulario registra la lista de palabras diferentes encontradas en un corpus de ejemplos, ¿qué podría pasar en un análisis de sentimiento de comentarios del público en noticias de un sitio web, si el Vocabulario fue construido sólo desde el texto en las noticias del mismo sitio? (1,5 puntos)
+
+Respuesta: El Vocabulario no será capaz de reconocer palabras que no conoce, por lo que si los comentarios del público utilizan un léxico más coloquial (o incluso soez), el lenguaje más neutro y formal de las noticias no podrá ser identificado para el análisis de sentimiento.
+
+
+Pregunta 4) Una institución de educación decide realizar un agrupamiento condicionado y dirigido de todos alumnos, buscando encontrar grupos con rendimiento académico similar y determinar sus semejanzas. Para cada alumno se tiene la edad, género, generación, nota promedio acumulada. Inicialmente, se hacen 15 grupos de alumnos, organizados por rango de promedio de notas (4,0 y 4,1; 4,2 y 4,3; …; 6,9 y 7,0). Luego se ejecuta un algoritmo jerárquico aglomerativo, juntando estos grupos hasta quedar sólo con 4 grupos. ¿Qué ventaja tiene este esquema por sobre una ejecución de otro modelo, por ej un K-Means, desde el comienzo? Argumente su análisis. (1,5 puntos)
+
+Respuesta: La ventaja que puede tener el modelo jerárquico aglomerativo sobre K-means es que el número de clúster no está definido a priori, por lo que el número de segmentos generado se decide a la luz de los resultados y objetivos definidos. Además, tiene buena reproducibilidad, pues no hay aleatoriedad en su ejecución y, al igual que en K-means, no considera ruido.
+
+

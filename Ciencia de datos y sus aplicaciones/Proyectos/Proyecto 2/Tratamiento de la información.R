@@ -8,17 +8,18 @@ librerias <- c(
   "dplyr",
   "tibble",
   "ggplot2",
+  "openxlsx",
   "readxl",
-  #"xlsx", # Paquete para escirbir archivos xlsx
+  #"writexl",
   "factoextra", # Visualización de PCA
   "cluster", # Cálculo de silueta
   "caret", # Matriz de comparación
-  "mclust", # Mixture-Gaussian model
-  "dbscan", # DBSCAN  model
-  "dendextend", # Evaluar comparador "FM_index"
-  "clevr", # Evaluar comparador "v_measure" y "adj_rand_index"
+  #"mclust", # Mixture-Gaussian model
+  #"dbscan", # DBSCAN  model
+  #"dendextend", # Evaluar comparador "FM_index"
+  #"clevr", # Evaluar comparador "v_measure" y "adj_rand_index"
   "rgl", # Visualización en 3D
-  "Rtsne", # Análisis t-SNE
+  #"Rtsne", # Análisis t-SNE
   "lintr"
 )
 for (libreria in librerias) {
@@ -32,7 +33,7 @@ for (libreria in librerias) {
 # Trabajo con Linux y Windows, dependiendo de las circusntancias
 if (Sys.info()["sysname"] == "Windows") {
   setwd(paste0(
-    "C:\\Users\\nproj\\Documents\\Diplomado_Big_Data_Data_Science\\",
+    "C:\\Users\\Wladimir\\OneDrive\\Documentos\\Diplomado\\",
     "Ciencia de datos y sus aplicaciones\\Proyectos\\Proyecto 2"
   ))
 } else if (Sys.info()["sysname"] == "Linux") {
@@ -187,7 +188,6 @@ dataset_podado2 <- dataset_sin_outliers %>%
     Edad, Saldo.Medio.Anual, Tiene_credito_hipotecario, AL_trab_dep,
     NE_universit, MCP_celular
   )
-#summary(dataset_podado_pesado2)
 
 
 # Exploración de los datos ------------------------------------------------
@@ -368,7 +368,285 @@ plot(
 )
 
 
-# Evaluación de modelos ---------------------------------------------------
+# Análisis de componentes principales (PCA) -------------------------------
+
+# Generación de los componentes principales
+modelo1_pca <- princomp(x = dataset_sin_outliers)
+varianza1_pca <- round(
+  x = modelo1_pca$sdev^2 / sum(modelo1_pca$sdev^2) * 100,
+  digit = 2
+)
+
+# Dataset con análisis PCA del 85% de información
+dataset_pca <- as.data.frame(
+  x = modelo1_pca$scores[, c("Comp.1", "Comp.2", "Comp.3", "Comp.4", "Comp.5")]
+)
+
+# Pesos asignados a cada variable para los 5 primeros componentes principales
+pesos1_pca <- as_tibble_col(
+  x = row.names(modelo1_pca$loadings),
+  column_name = "Variables"
+) %>%
+  bind_cols(round(x = modelo1_pca$loadings[, 1:5], digit = 4)) %>%
+  rbind(c("Porcentaje de varianza", varianza1_pca[1:5]))
+
+# Gráfico en 2 y 3 dimensiones PCA sin clústeres asignados
+fviz_pca_ind(X = modelo1_pca)
+plot3d(x = modelo1_pca$scores[, 1:3])
+
+
+# Evaluación de modelos K-medios ------------------------------------------
+
+# Comparador de distintas ejecuciones de K-medios
+comparador_kmeans <- data.frame(
+  variables = character(),
+  valor_k = integer(),
+  iteración = integer(),
+  silueta_media = numeric(),
+  suma_cuadratica = numeric()
+)
+
+
+# Se comparan 20 ejecuciones para valores K de 2 a 10 para 3 datasets
+for (datos in 1:4) {
+  if (datos == 1) {
+    dataframe <- dataset_sin_outliers
+    variables <- "Sin outliers"
+  } else if (datos == 2) {
+    dataframe <- dataset_pesado
+    variables <- "Variables pesadas"
+  } else if (datos == 3) {
+    dataframe <- dataset_podado_pesado
+    variables <- "Pesado y selecto"
+  } else {
+    dataframe <- dataset_pca
+    variables <- "PCA"
+  }
+
+  # Matriz de distancia
+  distancia_aux <- dist(dataframe)
+
+  for (valor_k in 1:10) {
+    for (iteracion in 1:30) {
+      modelo_km <- kmeans(
+        x = dataframe,
+        centers = valor_k,
+        iter.max = 20,
+        nstart = 30,
+        algorithm = "Hartigan-Wong",
+        trace = FALSE
+      )
+
+      # Se calcula el promedio de la silueta para cada iteración de K-medios
+      if (valor_k == 1) {
+        promedio_silueta <- 0
+      } else {
+        silueta_aux <- silhouette(x = modelo_km$cluster, dist = distancia_aux)
+        promedio_silueta <- mean(silueta_aux[, "sil_width"])
+      }
+
+      # Se genera la nueva fila de la iteración
+      nueva_fila <- data.frame(
+        variables = variables,
+        valor_k = valor_k,
+        iteración = iteracion,
+        silueta_media = promedio_silueta,
+        suma_cuadratica = modelo_km$tot.withinss
+      )
+
+      # Agrega una fila al DataFrame comparador_kmeans
+      comparador_kmeans <- rbind(comparador_kmeans, nueva_fila)
+
+      # se libera la memoria innecesaria
+      gc()
+    }
+  }
+}
+
+# Se evalúan los resultados distintos de k-medios
+for (k in 1:10) {
+  valores <- unique(
+    x = comparador_kmeans[
+      comparador_kmeans$valor_k == k & comparador_kmeans$variables == "PCA",
+      "suma_cuadratica"
+    ]
+  )
+
+  cat(
+    paste0(
+      "\n\nPara ", k, " clústeres, en 30 iteraciones, existen ",
+      length(valores), " valores de suma cuadrática distintos, con promedio ",
+      round(mean(valores), 2), ":\n"
+    )
+  )
+  print(sort(unique(valores)))
+}
+
+##### Gráficos #####
+# Gráfico de codo con el dataset "PCA"
+grafico_codo1 <- comparador_kmeans %>%
+  filter(variables == "PCA") %>%
+  group_by(valor_k) %>%
+  summarise(suma_cuadratica = mean(suma_cuadratica)) %>%
+  ggplot() +
+  geom_line(mapping = aes(x = valor_k, y = suma_cuadratica)) +
+  geom_point(mapping = aes(x = valor_k, y = suma_cuadratica)) +
+  labs(
+    title = "Suma cuadrática de distancias por número de clústeres.",
+    subtitle = "Componentes principales, sin valores outliers.",
+    x = "Número de clústeres",
+    y = "Suma cuadrática"
+  ) +
+  scale_x_continuous(breaks = 1:10, labels = 1:10) +
+  theme_light() +
+  theme(panel.grid.minor.x = element_blank())
+
+# Gráfico de codo comparado con distintas facetas
+comparador_kmeans %>%
+  mutate(variables = as.factor(variables)) %>%
+  group_by(variables, valor_k) %>%
+  summarise(suma_cuadratica = mean(suma_cuadratica)) %>%
+  ggplot() +
+  geom_line(
+    mapping = aes(x = valor_k, y = suma_cuadratica, colour = variables)
+  ) +
+  geom_point(
+    mapping = aes(x = valor_k, y = suma_cuadratica, colour = variables)
+  ) +
+  labs(
+    title = "Suma cuadrática de distancias por número de clústeres.",
+    subtitle = "Distintos dataset",
+    x = "Número de clústeres",
+    y = "Suma cuadrática"
+  ) +
+  scale_x_continuous(breaks = 1:10, labels = 1:10) +
+  facet_wrap(facets = vars(variables), ncol = 5, scales = "free_y") +
+  theme_light() +
+  theme(
+    panel.grid = element_blank(),
+    strip.background = element_blank(),
+    strip.placement = "outside",
+    strip.text = element_text(colour = "black")
+  )
+
+# Gráfico de silueta con el dataset "PCA"
+grafico_silueta1 <- comparador_kmeans %>%
+  filter(variables == "PCA") %>%
+  group_by(valor_k) %>%
+  summarise(silueta_media = mean(silueta_media)) %>%
+  ggplot() +
+  geom_line(mapping = aes(x = valor_k, y = silueta_media)) +
+  geom_point(mapping = aes(x = valor_k, y = silueta_media)) +
+  labs(
+    title = "Valor promedio de silueta por número de clústeres.",
+    subtitle = "Componentes principales, sin valores outliers.",
+    x = "Número de clústeres",
+    y = "Silueta media"
+  ) +
+  scale_x_continuous(breaks = 1:10, labels = 1:10) +
+  theme_light() +
+  theme(panel.grid.minor.x = element_blank())
+
+# Gráfico de silueta comparado con distintas facetas
+comparador_kmeans %>%
+  mutate(variables = as.factor(variables)) %>%
+  group_by(variables, valor_k) %>%
+  summarise(silueta_media = mean(silueta_media)) %>%
+  ggplot() +
+  geom_line(
+    mapping = aes(x = valor_k, y = silueta_media, colour = variables)
+  ) +
+  geom_point(
+    mapping = aes(x = valor_k, y = silueta_media, colour = variables)
+  ) +
+  labs(
+    title = "Valor promedio de silueta por número de clústeres.",
+    subtitle = "Distintos dataset",
+    x = "Número de clústeres",
+    y = "Silueta media"
+  ) +
+  scale_x_continuous(breaks = 1:10, labels = 1:10) +
+  facet_wrap(facets = vars(variables), ncol = 5) +
+  theme_light() +
+  theme(
+    panel.grid = element_blank(),
+    strip.background = element_blank(),
+    strip.placement = "outside",
+    strip.text = element_text(colour = "black")
+  )
+
+
+# Evaluación de clústeres -------------------------------------------------
+
+# Se ejecuta la semgentación con las variables escogidas
+modelo_km_final <- kmeans(
+  x = dataset_pca,
+  centers = 5,
+  iter.max = 20,
+  nstart = 30,
+  algorithm = "Hartigan-Wong",
+  trace = FALSE
+)
+# La clusterización seleccionada es:
+# C1: 3221, C2: 15005, C3: 19703, C4: 2873, C5: 4356
+
+dataset_con_clusteres <- dataset_categorizado[
+  dataset_ponderado$Saldo.Medio.Anual < 0.8 &
+    dataset_ponderado$Saldo.Medio.Anual > 0.02 &
+    dataset_ponderado$Contactos.con.su.Ejecutivo < 0.18 &
+    dataset_ponderado$Edad < 1 & log(dataset_ponderado$Edad) > -6,
+] %>%
+  mutate(Clúster = modelo_km_final$cluster)
+
+media_sin_cluster <- dataset_con_clusteres %>%
+  summarise_all(mean) %>%
+  mutate(Clúster = "Total", Tamaño = nrow(dataset_con_clusteres))
+
+medias_con_clusteres <- dataset_con_clusteres %>%
+  mutate(Clúster = as.factor(Clúster)) %>%
+  group_by(Clúster) %>%
+  summarise_all(mean) %>%
+  mutate(Tamaño = modelo_km_final$size) %>%
+  bind_rows(media_sin_cluster)
+
+mediana_sin_cluster <- dataset_con_clusteres %>%
+  summarise_all(median) %>%
+  mutate(Clúster = "Total", Tamaño = nrow(dataset_con_clusteres))
+
+medianas_con_clusteres <- dataset_con_clusteres %>%
+  mutate(Clúster = as.factor(Clúster)) %>%
+  group_by(Clúster) %>%
+  summarise_all(median) %>%
+  mutate(Tamaño = modelo_km_final$size) %>%
+  bind_rows(mediana_sin_cluster)
+
+# Gráfico en 2 y 3 dimensiones PCA con clústeres asignados
+fviz_pca_ind(X = modelo1_pca, habillage = modelo_km_final$cluster)
+plot3d(modelo1_pca$scores[, 1:3], col = modelo_km_final$cluster)
+
+
+# Tablas importantes ------------------------------------------------------
+
+# Crear un archivo de Excel
+tablas <- createWorkbook()
+
+# Tabla con las medianas de los clústeres
+addWorksheet(wb = tablas, sheetName = "Medianas")
+writeData(wb = tablas, sheet = 1, x = medianas_con_clusteres)
+
+# Tabla con las medias de los clústeres
+addWorksheet(wb = tablas, sheetName = "Medias")
+writeData(wb = tablas, sheet = 2, x = medias_con_clusteres)
+
+# Tabla con los pesos de los componentes
+addWorksheet(wb = tablas, sheetName = "Componentes_PCA")
+writeData(wb = tablas, sheet = 3, x = pesos1_pca)
+
+# Se guarda el archivo de Excel
+saveWorkbook(wb = tablas, file = "Tablas_clusteres2.xlsx")
+
+
+# Experimentos ------------------------------------------------------------
 
 ##### Evaluación de la variación con K-medios de 4 clústeres #####
 comparador <- tibble(
@@ -404,19 +682,19 @@ for (i in 1:20) {
 ##### Homologación de K-medios y Mezcla Gaussiana para 4 clústeres #####
 # K-medios
 modelo_km1 <- kmeans(
-  x = dataset_pesado,
-  centers = 4,
+  x = dataset_pca,
+  centers = 5,
   iter.max = 20,
   nstart = 30,
   algorithm = "Hartigan-Wong",
   trace = FALSE
 )
-clusters_km1 <- modelo_km1$cluster
+clusters_km1 <- modelo_km_final$cluster
 
 # Mezcla Gaussiana
 modelo_mixgauss1 <- Mclust(
-  data = dataset_pesado,
-  G = 4
+  data = dataset_pca,
+  G = 5
 )
 clusters_mg1 <- modelo_mixgauss1$classification
 
@@ -475,16 +753,10 @@ clusteres %>%
   filter(K_medios_pre == 4) %>%
   group_by(M_gaussi_pre) %>%
   summarise("cantidad" = n())
-
-
-
-# El cálculo de la distancia y la silueta los debe hacer Wladimir
-#distancia <- dist(dataset_pca)
-# silhouette(x = modelo_km1$cluster, dist = distancia)
-
-# Propuesta de Ramiro (Chat-GPT) para el cálculo de silueta
-#mean(modelo_km$betweenss / modelo_km$tot.withinss
-
+clusteres %>%
+  filter(K_medios_pre == 5) %>%
+  group_by(M_gaussi_pre) %>%
+  summarise("cantidad" = n())
 
 
 
@@ -495,268 +767,29 @@ round(
   x = modelo1_pca$sdev^2 / sum(modelo1_pca$sdev^2) * 100,
   digit = 2
 )
-fviz_pca_ind(X = modelo1_pca, habillage = modelo_km_final$cluster)
-plot3d(modelo1_pca$scores[, 1:3], col = modelo_km_final$cluster)
 
 # Dataset con análisis PCA del 85% de información
-dataset_pca <- modelo1_pca$scores[,
+dataset_pca <- modelo1_pca$scores[
+  ,
   c("Comp.1", "Comp.2", "Comp.3", "Comp.4", "Comp.5")
 ]
 
-# Dataset pesado
-modelo2_pca <- princomp(x = dataset_pesado)
-round(
-  x = modelo2_pca$sdev^2 / sum(modelo2_pca$sdev^2) * 100,
-  digit = 2
-)
-fviz_pca_ind(X = modelo2_pca, habillage = modelo_km_final$cluster)
-plot3d(modelo2_pca$scores[, 1:3], col = modelo_km_final$cluster)
+# Pesos asignados a cada variable para los 5 primeros componentes principales
+pesos1_pca <- as_tibble_col(
+  x = row.names(modelo1_pca$loadings),
+  column_name = "Variables"
+) %>%
+  bind_cols(round(x = modelo1_pca$loadings[, 1:5], digit = 4))
 
-# Dataset PCA
-modelo3_pca <- princomp(x = dataset_sin_outliers)
-round(
-  x = modelo3_pca$sdev^2 / sum(modelo3_pca$sdev^2) * 100,
-  digit = 2
-)
-fviz_pca_ind(X = modelo3_pca, habillage = modelo_km_final$cluster)
-plot3d(modelo3_pca$scores[, 1:3], col = modelo_km_final$cluster)
+# Gráfico en 2 y 3 dimensiones PCA
+fviz_pca_ind(X = modelo1_pca, habillage = modelo_km_final$cluster)
+fviz_pca_ind(X = modelo1_pca, habillage = modelo_mixgauss1$classification)
+plot3d(modelo1_pca$scores[, 1:3], col = modelo_km_final$cluster)
+plot3d(modelo1_pca$scores[, 1:3], col = modelo_mixgauss1$classification)
+
 
 ##### Análisis tSNE #####
-modelo1_tsne <- Rtsne(X = unique(dataset_sin_outliers))
+
+modelo1_tsne <- Rtsne(X = unique(dataset_pca))
 ggplot(data = as_tibble(modelo1_tsne$Y)) +
-  geom_point(mapping = aes(x = V1, y = V2))
-
-
-# Tablas importantes ------------------------------------------------------
-
-##### Visualización de las tablas #####
-
-##### Traspaso de las tablas a un archivo xlsx #####
-write.xlsx(
-  x = comparador_modelos_1,
-  file = "Datos y Modelos.xlsx",
-  sheetName = "Rendimiento_Modelos",
-  append = TRUE, # Se crea el archivo
-  showNA = FALSE
-)
-
-# Experimentos ------------------------------------------------------------
-
-# Comparador de distintas ejecuciones de K-medios
-df_experimental <- data.frame(
-  variables = character(),
-  valor_k = integer(),
-  iteración = integer(),
-  silueta_media = numeric(),
-  suma_cuadratica = numeric()
-)
-
-# Se comparan 20 ejecuciones para valores K de 2 a 10
-for (k in 1:10) {
-  for (iteracion in 1:30) {
-    modelo_km <- kmeans(
-      #x = dataset_ponderado,
-      #x= dataset_sin_outliers,
-      #x = dataset_pesado,
-      #x = dataset_podado_pesado,
-      #x = dataset_podado_pesado2,
-      x = dataset_pca,
-      centers = k,
-      iter.max = 20,
-      nstart = 30,
-      algorithm = "Hartigan-Wong",
-      trace = FALSE
-    )
-
-    # Acá podría ponerse el cálculo de silueta
-
-    # Se genera la nueva fila de la iteración
-    nueva_fila <- data.frame(
-      #variables = "Todas",
-      #variables = "Sin outliers",
-      #variables = "Pesadas x2",
-      #variables = "Podado x2",
-      #variables = "Liviano x2",
-      variables = "PCA",
-      valor_k = k,
-      iteración = iteracion,
-      silueta_media = NA,
-      suma_cuadratica = modelo_km$tot.withinss
-    )
-
-    # Agrega una fila al DataFrame df_experimental
-    df_experimental <- rbind(df_experimental, nueva_fila)
-  }
-}
-
-for (k in 1:10) {
-  valores <- unique(
-    x = df_experimental[
-      df_experimental$valor_k == k & df_experimental$variables == "PCA",
-      "suma_cuadratica"
-    ]
-  )
-
-  cat(
-    paste0(
-      "\n\nPara ", k, " clústeres, en 30 iteraciones, existen ",
-      length(valores), " valores de suma cuadrática distintos, con promedio ",
-      round(mean(valores), 2), ":\n"
-    )
-  )
-  print(sort(unique(valores)))
-}
-
-# Gráficos de codo
-grafico_codo1 <- df_experimental[1:300, ] %>%
-  filter(variables == "Todas") %>%
-  group_by(valor_k) %>%
-  summarise(suma_cuadratica = mean(suma_cuadratica)) %>%
-  ggplot() +
-  geom_line(mapping = aes(x = valor_k, y = suma_cuadratica)) +
-  geom_point(mapping = aes(x = valor_k, y = suma_cuadratica)) +
-  labs(
-    title = "Suma cuadrática de distancias por número de clústeres.",
-    subtitle = "Todas las variables.",
-    x = "Número de clústeres",
-    y = "Suma cuadrática"
-  ) +
-  scale_x_continuous(breaks = 1:10, labels = 1:10) +
-  theme_light() +
-  theme(panel.grid.minor.x = element_blank())
-
-grafico_codo2 <- df_experimental[301:600, ] %>%
-  filter(variables == "Sin outliers") %>%
-  group_by(valor_k) %>%
-  summarise(suma_cuadratica = mean(suma_cuadratica)) %>%
-  ggplot() +
-  geom_line(mapping = aes(x = valor_k, y = suma_cuadratica)) +
-  geom_point(mapping = aes(x = valor_k, y = suma_cuadratica)) +
-  labs(
-    title = "Suma cuadrática de distancias por número de clústeres.",
-    subtitle = "Todas las variables sin valores outliers.",
-    x = "Número de clústeres",
-    y = "Suma cuadrática"
-  ) +
-  scale_x_continuous(breaks = 1:10, labels = 1:10) +
-  theme_light() +
-  theme(panel.grid.minor.x = element_blank())
-
-grafico_codo3 <- df_experimental %>%
-  filter(variables == "Pesadas x2") %>%
-  group_by(valor_k) %>%
-  summarise(suma_cuadratica = mean(suma_cuadratica)) %>%
-  ggplot() +
-  geom_line(mapping = aes(x = valor_k, y = suma_cuadratica)) +
-  geom_point(mapping = aes(x = valor_k, y = suma_cuadratica)) +
-  labs(
-    title = "Suma cuadrática de distancias por número de clústeres.",
-    subtitle = "Variables claves con peso x2.",
-    x = "Número de clústeres",
-    y = "Suma cuadrática"
-  ) +
-  scale_x_continuous(breaks = 1:10, labels = 1:10) +
-  theme_light() +
-  theme(panel.grid.minor.x = element_blank())
-
-grafico_codo4 <- df_experimental %>%
-  filter(variables == "Podado x2") %>%
-  group_by(valor_k) %>%
-  summarise(suma_cuadratica = mean(suma_cuadratica)) %>%
-  ggplot() +
-  geom_line(mapping = aes(x = valor_k, y = suma_cuadratica)) +
-  geom_point(mapping = aes(x = valor_k, y = suma_cuadratica)) +
-  labs(
-    title = "Suma cuadrática de distancias por número de clústeres.",
-    subtitle = "Variables claves con peso x2 y seleccionado.",
-    x = "Número de clústeres",
-    y = "Suma cuadrática"
-  ) +
-  scale_x_continuous(breaks = 1:10, labels = 1:10) +
-  theme_light() +
-  theme(panel.grid.minor.x = element_blank())
-
-grafico_codo5 <- df_experimental %>%
-  filter(variables == "Liviano x2") %>%
-  group_by(valor_k) %>%
-  summarise(suma_cuadratica = mean(suma_cuadratica)) %>%
-  ggplot() +
-  geom_line(mapping = aes(x = valor_k, y = suma_cuadratica)) +
-  geom_point(mapping = aes(x = valor_k, y = suma_cuadratica)) +
-  labs(
-    title = "Suma cuadrática de distancias por número de clústeres.",
-    subtitle = "Variables claves con peso x2 y ultra seleccionado.",
-    x = "Número de clústeres",
-    y = "Suma cuadrática"
-  ) +
-  scale_x_continuous(breaks = 1:10, labels = 1:10) +
-  theme_light() +
-  theme(panel.grid.minor.x = element_blank())
-
-# Gráfico comparado con distintas facetas
-df_experimental %>%
-  mutate(variables = as.factor(variables)) %>%
-  group_by(variables, valor_k) %>%
-  summarise(suma_cuadratica = mean(suma_cuadratica)) %>%
-  ggplot() +
-  geom_line(
-    mapping = aes(x = valor_k, y = suma_cuadratica, colour = variables)
-  ) +
-  geom_point(
-    mapping = aes(x = valor_k, y = suma_cuadratica, colour = variables)
-  ) +
-  labs(
-    title = "Suma cuadrática de distancias por número de clústeres.",
-    subtitle = "Variables claves con peso x2.",
-    x = "Número de clústeres",
-    y = "Suma cuadrática"
-  ) +
-  scale_x_continuous(breaks = 1:10, labels = 1:10) +
-  facet_wrap(facets = vars(variables), ncol = 5, scales = "free_y") +
-  theme_light() +
-  theme(panel.grid = element_blank())
-
-
-# Evaluación de clústeres -------------------------------------------------
-
-modelo_km_final <- kmeans(
-  x = dataset_pca,
-  centers = 3,
-  iter.max = 20,
-  nstart = 30,
-  algorithm = "Hartigan-Wong",
-  trace = FALSE
-)
-
-dataset_con_clusteres <- dataset_categorizado[
-  dataset_ponderado$Saldo.Medio.Anual < 0.8 &
-    dataset_ponderado$Saldo.Medio.Anual > 0.02 &
-    dataset_ponderado$Contactos.con.su.Ejecutivo < 0.18 &
-    dataset_ponderado$Edad < 1 & log(dataset_ponderado$Edad) > -6,
-] %>%
-  mutate(Clúster = modelo_km_final$cluster)
-
-media_sin_cluster <- dataset_con_clusteres %>%
-  summarise_all(mean) %>%
-  mutate(Clúster = "Total", Tamaño = nrow(dataset_con_clusteres))
-
-medias_con_clusteres <- dataset_con_clusteres %>%
-  mutate(Clúster = as.factor(Clúster)) %>%
-  group_by(Clúster) %>%
-  summarise_all(mean) %>%
-  mutate(Tamaño = modelo_km_final$size) %>%
-  bind_rows(media_sin_cluster)
-
-mediana_sin_cluster <- dataset_con_clusteres %>%
-  summarise_all(median) %>%
-  mutate(Clúster = "Total", Tamaño = nrow(dataset_con_clusteres))
-
-medianas_con_clusteres <- dataset_con_clusteres %>%
-  mutate(Clúster = as.factor(Clúster)) %>%
-  group_by(Clúster) %>%
-  summarise_all(median) %>%
-  mutate(Tamaño = modelo_km_final$size) %>%
-  bind_rows(mediana_sin_cluster)
-
-ggplot(data = dataset_con_clusteres) +
-  geom_boxplot(mapping = aes(x = Clúster, y = `Saldo Medio Anual`))
+  geom_point(mapping = aes(x = V1, y = V2), colour = modelo_km_final$cluster)

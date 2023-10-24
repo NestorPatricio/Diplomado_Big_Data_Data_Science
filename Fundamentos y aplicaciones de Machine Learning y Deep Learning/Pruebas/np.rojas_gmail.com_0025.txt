@@ -1,0 +1,29 @@
+MLDL v12 Control - 25 sept. 2023
+NO MODIFIQUES LAS PREGUNTAS (aunque encuentres errores en el texto).
+Contesta cada pregunta en el espacio que comienza con 'Respuesta:'.
+Escribe tus respuestas en forma breve, precisa y concisa, justificando tu declaración y/o dando alguna referencia de razonamiento. Al terminar guarda las preguntas y las respuestas respectivas en este mismo archivo guardado en forma TXT o DOCX solamente, y súbelas en la dirección:
+
+         AIKER.RSolver.com/AIKER/UploadTest.aspx
+
+Este buzón permite volver a subir el mismo archivo y reemplazar la versión anterior, conservando siempre la última como entrega oficial.
+
+IMPORTANTE: Como aún no te tengo en registro, por favor, escribe tu nombre completo al subir el archivo.
+
+
+________________________
+Lee con atención las preguntas y contesta sólo lo requerido. Cada respuesta debe tener una argumentación y/o justificación, de lo contrario podrá tener un puntaje incompleto. No exageres en el largo de la respuesta: se privilegian respuestas concisas y precisas. Puedes recurrir a todo el material de clases y referencias bibliográficas para responder.
+________________________
+Pregunta 1) Una empresa de telefonía móvil quiere implementar un modelo que entregue una buena predicción de que un usuario que no es cliente, dados sus datos de contacto y otros demográficos (edad, profesión, estado civil, entre otros), estará dispuesto a cambiarse a esta compañía o no. En las primeras pruebas con un dataset extenso, se logra un accuracy muy bueno, de 93,7%. ¿Cree Ud, que esta información es suficiente para validar el modelo y pasarlo a producción? Justifique su respuesta. (2,0 puntos)
+
+Respuesta: 
+No es información suficiente para enviar el modelo a producción, pues falta conocer el valor de otros indicadores como la sensibilidad (para ver el rendimiento con la clase positiva) y la especificidad (el rendimiento para la clase negativa), además que se desconoce cuál respuesta, SI o NO, se consideró como clase positiva y negativa.
+
+Pregunta 2) En el contexto de una epidemia viral, se ha determinado que el contagio aumenta exponencialmente durante un periodo de un par de meses, llamado una Ola, hasta que las medidas sanitarias logran su efecto de control. El ministerio de salud implementó un método de detección de cuándo se dan los primero indicios de una nueva ola, pero requiere de un modelo que sea capaz de predecir la cantidad de nuevos contagios en los días siguientes mientras dura la ola. De los modelos de predicción supervisada vistos en clases, ¿cuál cree Ud. se podría aplicar en este contexto? Justifique su respuesta. (2,0 puntos)
+
+Respuesta: 
+Puesto que la variable que queremos saber es de tipo numérico, debe ser un modelo de regresión. Si consideramos el factor temporal del problema, entonces aplicar un modelo de serie de tiempo puede ser lo más recomendado, pues puede analizar la tendencia general de los contagios, además de identificar la estacionalidad de las olas. De entre estos, preferiría un modelo de tendencia de regresión.
+
+Pregunta 3) Un laboratorio está implementando un modelo de predicción de una patología potencialmente genética (heredable). Esto implica analizar los cientos de miles de atributos genéticos de cada paciente, entre los que hay miles de casos diagnosticados positivos y negativos respectivamente. Preliminarmente el equipo estuvo probando con modelos como SVM y KNN con resultados regulares (accuracy mediano, igual que sensitivity y specificity), por lo que Ud, como profesional con experiencia, recomienda utilizar una Red Neuronal. ¿Qué argumentos sirven para sustentar esta recomendación, por sobre un SVM y un KNN respectivamente? (2,0 puntos)
+
+Respuesta: 
+Cuando se tiene un dataset grande con una gran cantidad de atributos (o variables) y casos (o registros) las redes neuronales presentan mejor desempeño pues son capaces de identificar mejor la complejidad de los datos configurando la cantidad de capas y el número de nodos por cada capa. Además, son más robustas frente a casos de valores atípicos.
